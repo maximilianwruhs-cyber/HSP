@@ -1,0 +1,3562 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardware Sonification Dashboard [ORCHESTRA]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Oxanium:wght@500;700&display=swap">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            --phi: 1.618;
+            --content-w: min(1240px, 95vw);
+            --s1: 0.34rem;
+            --s2: calc(var(--s1) * var(--phi));
+            --s3: calc(var(--s2) * var(--phi));
+            --s4: calc(var(--s3) * var(--phi));
+            --r1: 7px;
+            --r2: 11px;
+            --r3: 18px;
+            --chart-h: calc(var(--s4) * 4.0);
+            --row-h-proc: calc(var(--s2) * 2.1);
+            --row-h-route: calc(var(--s2) * 2.3);
+            --bar-h: calc(var(--s1) * 1.7);
+            --bg-0: #05070b;
+            --bg-1: #0b1018;
+            --panel: #111723;
+            --panel-2: #0d141f;
+            --line: #26344b;
+            --line-strong: #3a4c69;
+            --text: #dbe7ff;
+            --muted: #8d9dbc;
+            --accent: #69f0ff;
+            --accent-2: #ffd36b;
+            --range-accent: var(--accent-2);
+            --cpu: #ff7272;
+            --ram: #62f7b3;
+            --gpu: #ffb45e;
+            --good: #63ffa4;
+            --warn: #ffd36b;
+            --danger: #ff6f8f;
+            --status-alert: #f43f5e;
+            --panel-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        body[data-theme='crt-green'] {
+            --bg-0: #030603;
+            --bg-1: #08110a;
+            --panel: #0a130c;
+            --panel-2: #091109;
+            --line: #2b4f31;
+            --line-strong: #3f6f47;
+            --text: #ccffd6;
+            --muted: #84b98f;
+            --accent: #77ff9f;
+            --accent-2: #a7ff86;
+            --cpu: #ff8f96;
+            --ram: #79ffc6;
+            --gpu: #b9ff75;
+            --good: #85ffb2;
+            --warn: #ceff8e;
+            --danger: #ff8da8;
+        }
+
+        body[data-theme='amber-ops'] {
+            --bg-0: #0b0703;
+            --bg-1: #161005;
+            --panel: #211606;
+            --panel-2: #1a1206;
+            --line: #5f4221;
+            --line-strong: #7b5a2f;
+            --text: #ffe6c3;
+            --muted: #cfae7d;
+            --accent: #ffc16c;
+            --accent-2: #ffd98a;
+            --cpu: #ff9d84;
+            --ram: #ffd16f;
+            --gpu: #ffb45c;
+            --good: #ffce7a;
+            --warn: #ffe29d;
+            --danger: #ff8d67;
+        }
+
+        body[data-theme='ice-lab'] {
+            --bg-0: #06070a;
+            --bg-1: #10141c;
+            --panel: #161c28;
+            --panel-2: #101521;
+            --line: #3a4762;
+            --line-strong: #526487;
+            --text: #e6efff;
+            --muted: #a6b8d4;
+            --accent: #8fb7ff;
+            --accent-2: #74f4ff;
+            --cpu: #9ab2ff;
+            --ram: #7effef;
+            --gpu: #9de38d;
+            --good: #9df5f0;
+            --warn: #b9f0a0;
+            --danger: #9ca8ff;
+        }
+
+        /* ── htop-tui: hard terminal black with saturated neon glows ──────── */
+        body[data-theme='htop-tui'] {
+            --bg-0:       #08080f;
+            --bg-1:       #0d0d1a;
+            --panel:      #0d0d1a;
+            --panel-2:    #111120;
+            --line:       #1c2040;
+            --line-strong:#2a3060;
+            /* text */
+            --text:       #e8e8ea;
+            --muted:      #b4b7c4;
+            /* accent: panel border cyan */
+            --accent:     #00ddcc;
+            --accent-2:   #ee44ee;
+            --range-accent: #00ddcc;
+            /* metric colours */
+            --cpu:        #ff3344;
+            --ram:        #39ff88;
+            --gpu:        #ff8800;
+            --good:       #39ff88;
+            --warn:       #ff8800;
+            --danger:     #ff3344;
+            --status-alert: #ff5a66;
+            /* glow shadow override — tighter, brighter */
+            --panel-shadow: 0 0 0.6em #00ddcc44, 0 0 1.2em #00ddcc18;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background:
+                radial-gradient(1200px 500px at 10% -10%, rgba(70, 121, 255, 0.14), transparent 55%),
+                radial-gradient(1000px 480px at 95% 6%, rgba(105, 240, 255, 0.11), transparent 55%),
+                linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+            color: var(--text);
+            font-family: 'Share Tech Mono', 'Consolas', 'Courier New', monospace;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -3rem;
+            left: 0.8rem;
+            z-index: 1201;
+            padding: 0.45rem 0.7rem;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--r1);
+            background: rgba(10, 16, 25, 0.95);
+            color: var(--text);
+            text-decoration: none;
+            letter-spacing: 0.04em;
+            transition: top 0.12s ease;
+        }
+
+        .skip-link:focus-visible {
+            top: 0.8rem;
+            outline: 2px solid var(--accent-2);
+            outline-offset: 2px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(137, 193, 255, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(137, 193, 255, 0.05) 1px, transparent 1px);
+            background-size: 100% 26px, 26px 100%;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 95%);
+            opacity: 0.28;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0.018),
+                rgba(255, 255, 255, 0.018) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            opacity: 0.25;
+            z-index: 0;
+        }
+
+        /* htop-tui: suppress blue grid, bump scanline opacity for CRT feel */
+        body[data-theme='htop-tui']::before {
+            background-image:
+                linear-gradient(rgba(0, 221, 204, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 221, 204, 0.03) 1px, transparent 1px);
+            opacity: 0.35;
+        }
+        body[data-theme='htop-tui']::after { opacity: 0.40; }
+
+        /* htop-tui: sharp corners, tighter border + glow on all panels */
+        body[data-theme='htop-tui'] .card,
+        body[data-theme='htop-tui'] header,
+        body[data-theme='htop-tui'] .ops-grid > * {
+            border-radius: 0;
+            border-color: var(--accent);
+            box-shadow: 0 0 0.5em #00ddcc55, inset 0 0 0.3em #00ddcc11;
+        }
+
+        body[data-theme='htop-tui'] .card.cpu,
+        body[data-theme='htop-tui'] .card.ram,
+        body[data-theme='htop-tui'] .card.gpu {
+            box-shadow: 0 0 0.5em #00ddcc55, inset 0 0 0.3em #00ddcc11;
+        }
+
+        body[data-theme='htop-tui'] h1 {
+            font-family: 'Share Tech Mono', 'Consolas', 'Courier New', monospace;
+            color: var(--text);
+            letter-spacing: 0.08em;
+            text-shadow: 0 0 0.45em rgba(0, 221, 204, 0.22);
+        }
+
+        body[data-theme='htop-tui'] .header-subline,
+        body[data-theme='htop-tui'] .theme-label,
+        body[data-theme='htop-tui'] .status-text,
+        body[data-theme='htop-tui'] .metric-title,
+        body[data-theme='htop-tui'] .proc-label {
+            color: color-mix(in srgb, var(--text) 74%, var(--bg-1));
+        }
+
+        /* htop-tui: neon-text glow on metric values */
+        body[data-theme='htop-tui'] .metric-value,
+        body[data-theme='htop-tui'] .proc-val {
+            text-shadow: 0 0 0.4em currentColor;
+        }
+
+        body[data-theme='htop-tui'] .card.cpu .metric-value { color: var(--cpu); }
+        body[data-theme='htop-tui'] .card.ram .metric-value { color: var(--ram); }
+        body[data-theme='htop-tui'] .card.gpu .metric-value { color: var(--gpu); }
+
+        header,
+        .container,
+        .mixer,
+        .ops-grid,
+        #status {
+            position: relative;
+            z-index: 1;
+            animation: rise-in 0.8s cubic-bezier(.2, .9, .2, 1) both;
+        }
+
+        header {
+            width: var(--content-w);
+            margin-top: var(--s3);
+            padding: var(--s2) var(--s3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--s3);
+            background: linear-gradient(180deg, rgba(21, 31, 48, 0.9) 0%, rgba(11, 18, 29, 0.95) 100%);
+            border: 1px solid var(--line-strong);
+            border-radius: var(--r2);
+            box-shadow: var(--panel-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--s2);
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            row-gap: var(--s1);
+        }
+
+        h1 {
+            margin: 0;
+            font-family: 'Oxanium', sans-serif;
+            font-size: clamp(1rem, 1.7vw, 1.55rem);
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(105, 240, 255, 0.28);
+        }
+
+        .header-subline {
+            color: var(--muted);
+            font-size: 0.67rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .control-group {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--s1);
+            padding: calc(var(--s1) * 0.7) var(--s1);
+            border: 1px solid rgba(70, 94, 130, 0.35);
+            border-radius: var(--r1);
+            background: rgba(10, 16, 25, 0.45);
+        }
+
+        .status-group {
+            gap: calc(var(--s1) * 0.9);
+            padding-inline: var(--s2);
+            min-height: calc(var(--s3) * 1.25);
+        }
+
+        .status-group .btn-test {
+            margin-top: 0;
+            align-self: center;
+            white-space: nowrap;
+        }
+
+        .status-text {
+            font-size: 0.68rem;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 92px;
+            padding: 0.16rem 0.42rem;
+            border-radius: 999px;
+            border: 1px solid var(--line-strong);
+            background: rgba(10, 18, 28, 0.72);
+            color: var(--muted);
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .source-badge.local {
+            color: #9ed7ff;
+            border-color: #3c6186;
+        }
+
+        .source-badge.external {
+            color: #92ffcb;
+            border-color: #2c7358;
+            box-shadow: 0 0 14px rgba(99, 255, 164, 0.18);
+        }
+
+        .source-badge.fallback {
+            color: #ffd36b;
+            border-color: #7f6a2f;
+        }
+
+        .source-badge.offline {
+            color: #ff9aae;
+            border-color: #784455;
+        }
+
+        .theme-label {
+            color: var(--muted);
+            font-size: 0.68rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .theme-select {
+            min-width: 148px;
+            border-radius: var(--r1);
+            border: 1px solid var(--line-strong);
+            background: rgba(9, 14, 22, 0.9);
+            color: var(--text);
+            padding: var(--s1) var(--s2);
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
+            font-family: inherit;
+            text-transform: uppercase;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        }
+
+        .scene-save-btn {
+            margin-top: 0;
+            padding: 0.3rem 0.5rem;
+            font-size: 0.62rem;
+            border-color: var(--line-strong);
+            background: linear-gradient(180deg, #1b2a40, #152033);
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .theme-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+        }
+
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible,
+        a:focus-visible {
+            outline: 2px solid var(--accent-2);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 3px rgba(10, 17, 28, 0.8);
+        }
+
+        .container {
+            max-width: 1240px;
+            width: var(--content-w);
+            margin: var(--s2) auto;
+            display: grid;
+            grid-template-columns: minmax(250px, 1.618fr) minmax(250px, 1fr) minmax(250px, 1fr);
+            gap: var(--s2);
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(17, 23, 35, 0.95) 0%, rgba(13, 20, 31, 0.95) 100%);
+            border-radius: var(--r2);
+            padding: var(--s2);
+            border: 1px solid var(--line);
+            position: relative;
+            transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+            overflow: hidden;
+            box-shadow: var(--panel-shadow);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+            opacity: 0.55;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 36%);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--line-strong);
+            box-shadow: 0 18px 30px rgba(0, 0, 0, 0.52), 0 0 22px rgba(105, 240, 255, 0.11);
+        }
+
+        .card.cpu { box-shadow: var(--panel-shadow), inset 3px 0 0 rgba(255, 114, 114, 0.65); }
+        .card.ram { box-shadow: var(--panel-shadow), inset 3px 0 0 rgba(98, 247, 179, 0.65); }
+        .card.gpu { box-shadow: var(--panel-shadow), inset 3px 0 0 rgba(255, 180, 94, 0.65); }
+
+        .metric-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-pulse {
+            width: 0.625rem;
+            height: 0.625rem;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .metric-pulse.cpu {
+            background: var(--cpu);
+            box-shadow: 0 0 10px var(--cpu);
+        }
+
+        .metric-pulse.ram {
+            background: var(--ram);
+            box-shadow: 0 0 10px var(--ram);
+        }
+
+        .metric-pulse.gpu {
+            background: var(--gpu);
+            box-shadow: 0 0 10px var(--gpu);
+        }
+
+        .metric-title {
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+
+        .metric-value {
+            font-size: clamp(1.5rem, 2.25vw, 2.35rem);
+            font-weight: 700;
+            margin: var(--s1) 0;
+            line-height: 1;
+            font-family: 'Oxanium', sans-serif;
+            color: #f2f6ff;
+        }
+
+        .debug-line {
+            font-size: 0.66rem;
+            color: #88a2cc;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: var(--chart-h) !important;
+            border: 1px solid #1e2a3e;
+            border-radius: var(--r1);
+            background: linear-gradient(180deg, rgba(7, 12, 20, 0.95), rgba(4, 8, 14, 0.95));
+        }
+
+        .mixer {
+            width: var(--content-w);
+            max-width: 1240px;
+            background: linear-gradient(180deg, rgba(16, 24, 37, 0.95) 0%, rgba(10, 17, 28, 0.98) 100%);
+            padding: var(--s2);
+            border-radius: var(--r2);
+            margin-bottom: var(--s2);
+            border: 1px solid var(--line);
+            box-shadow: var(--panel-shadow);
+            display: grid;
+            grid-template-columns: minmax(280px, 1.618fr) minmax(220px, 1fr) minmax(220px, 1fr);
+            gap: var(--s2);
+        }
+
+        .mixer-genre {
+            border-color: #446180;
+            background: linear-gradient(180deg, rgba(21, 34, 53, 0.95) 0%, rgba(12, 22, 37, 0.98) 100%);
+            grid-template-columns: minmax(320px, 1.618fr) minmax(220px, 1fr);
+        }
+
+        .mixer-channel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--s1);
+        }
+
+        .mixer-actions {
+            justify-content: center;
+            align-items: center;
+            gap: var(--s2);
+        }
+
+        label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #a8bad8;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--range-accent);
+            filter: drop-shadow(0 0 6px rgba(255, 211, 107, 0.15));
+        }
+
+        #escalation-regulator {
+            width: 170px;
+        }
+
+        .genre-note {
+            margin: 0;
+            color: #a6bbdc;
+            font-size: 0.78rem;
+            line-height: 1.35;
+        }
+
+        .density-wrap {
+            display: flex;
+            align-items: center;
+            gap: var(--s1);
+        }
+
+        #genre-density {
+            max-width: calc(var(--s4) * 7);
+        }
+
+        .density-val {
+            min-width: calc(var(--s2) * 2.2);
+            font-size: 0.76rem;
+            color: var(--accent-2);
+        }
+
+        .line-trim-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--s1);
+        }
+
+        .line-trim-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.28rem 0.5rem;
+            padding: calc(var(--s1) * 0.75);
+            border: 1px solid rgba(56, 80, 113, 0.55);
+            border-radius: var(--r1);
+            background: rgba(8, 14, 22, 0.78);
+        }
+
+        .line-trim-row label {
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            color: #a7bad8;
+        }
+
+        .line-trim-row input[type=range] {
+            grid-column: span 2;
+        }
+
+        .line-trim-value {
+            color: var(--accent-2);
+            font-size: 0.66rem;
+            min-width: 58px;
+            text-align: right;
+        }
+
+        .line-trim-row.is-hidden {
+            display: none;
+        }
+
+        .ops-grid {
+            width: var(--content-w);
+            max-width: 1240px;
+            display: grid;
+            grid-template-columns: minmax(520px, 1.618fr) minmax(320px, 1fr);
+            gap: var(--s2);
+            margin-bottom: var(--s3);
+        }
+
+        .terminal-box {
+            background: linear-gradient(180deg, rgba(14, 22, 33, 0.95) 0%, rgba(9, 15, 24, 0.98) 100%);
+            border: 1px solid var(--line);
+            border-radius: var(--r2);
+            padding: var(--s2);
+            box-shadow: var(--panel-shadow);
+        }
+
+        .box-title {
+            color: var(--accent-2);
+            font-size: 0.74rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: var(--s2);
+            border-bottom: 1px solid #304056;
+            padding-bottom: var(--s1);
+            font-family: 'Oxanium', sans-serif;
+        }
+
+        .proc-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 62px;
+            gap: var(--s1);
+            align-items: center;
+            min-height: var(--row-h-proc);
+            margin-bottom: calc(var(--s1) * 0.65);
+            font-size: 0.69rem;
+        }
+
+        .proc-label {
+            color: #99aac8;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .proc-val {
+            text-align: right;
+            color: var(--accent-2);
+        }
+
+        .proc-bar {
+            height: var(--bar-h);
+            border: 1px solid #2b3a54;
+            background: #060d17;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .proc-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #62f7b3 0%, #69f0ff 45%, #ffd36b 73%, #ff7272 100%);
+            transition: width 0.18s linear;
+            box-shadow: 0 0 8px rgba(105, 240, 255, 0.4);
+        }
+
+        .routing-box {
+            margin-top: 0;
+        }
+
+        .route-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--s1);
+            margin-bottom: var(--s2);
+            max-height: calc(var(--chart-h) * 4.0);
+            overflow-y: auto;
+            padding-right: var(--s1);
+        }
+
+        .route-row {
+            display: grid;
+            grid-template-columns: 106px 1fr 102px;
+            gap: var(--s1);
+            align-items: center;
+            font-size: 0.66rem;
+            min-height: var(--row-h-route);
+            padding: calc(var(--s1) * 0.55) var(--s1);
+            border: 1px solid transparent;
+            border-radius: var(--r1);
+            transition: border-color 0.18s ease, background 0.18s ease;
+        }
+
+        .route-row:hover {
+            border-color: #33445f;
+            background: rgba(27, 39, 58, 0.44);
+        }
+
+        .route-row span {
+            color: #93a6c5;
+            text-transform: uppercase;
+        }
+
+        .route-select {
+            background: #0b1523;
+            color: #d8e6ff;
+            border: 1px solid #355070;
+            border-radius: var(--r1);
+            padding: calc(var(--s1) * 0.5) calc(var(--s1) * 0.8);
+            font-family: inherit;
+            font-size: 0.7rem;
+        }
+
+        .sens-wrap {
+            display: flex;
+            align-items: center;
+            gap: calc(var(--s1) * 0.75);
+        }
+
+        .sens-slider {
+            width: calc(var(--s4) * 2.6);
+        }
+
+        .sens-val {
+            min-width: calc(var(--s2) * 2.1);
+            color: #8befff;
+            font-size: 0.68rem;
+            text-align: right;
+        }
+
+        #start-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 50% 22%, rgba(64, 123, 255, 0.16), rgba(5, 9, 15, 0.97) 55%);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            z-index: 1000;
+        }
+
+        .overlay-card {
+            width: min(560px, 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(111, 206, 255, 0.35);
+            background: linear-gradient(180deg, rgba(12, 19, 30, 0.97) 0%, rgba(10, 14, 22, 0.98) 100%);
+            box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(157, 237, 255, 0.08);
+            padding: 1.35rem;
+            animation: rise-in 0.42s ease;
+        }
+
+        .overlay-kicker {
+            margin: 0 0 0.45rem;
+            color: #9de0ff;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        .overlay-title {
+            margin: 0 0 0.7rem;
+            font-family: 'Oxanium', sans-serif;
+            color: #f0f5ff;
+            letter-spacing: 0.06em;
+            text-transform: none;
+            font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+        }
+
+        .overlay-sub {
+            color: #9db2d6;
+            margin: 0 0 1rem;
+            max-width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .overlay-health-grid {
+            display: grid;
+            gap: 0.45rem;
+            margin: 0.85rem 0 1rem;
+        }
+
+        .overlay-health-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 0.42rem 0.62rem;
+            border: 1px solid rgba(73, 99, 136, 0.45);
+            border-radius: 8px;
+            background: rgba(13, 21, 32, 0.7);
+            gap: 0.5rem;
+        }
+
+        .overlay-health-row span {
+            color: #8ba0c4;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.62rem;
+        }
+
+        .overlay-health-row strong {
+            color: #dce9ff;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-align: right;
+        }
+
+        .overlay-advanced {
+            margin-top: 0.5rem;
+            border: 1px solid rgba(68, 89, 120, 0.45);
+            border-radius: 8px;
+            background: rgba(9, 14, 22, 0.72);
+            padding: 0.52rem 0.62rem;
+        }
+
+        .overlay-advanced > summary {
+            cursor: pointer;
+            color: #adc3e8;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            user-select: none;
+        }
+
+        .overlay-advanced > summary::-webkit-details-marker {
+            color: #84f2ff;
+        }
+
+        .overlay-advanced label {
+            display: block;
+            margin-top: 0.6rem;
+            color: #94abce;
+            font-size: 0.66rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .overlay-input {
+            margin-top: 0.3rem;
+            width: 100%;
+            border-radius: 7px;
+            border: 1px solid rgba(118, 152, 200, 0.55);
+            background: rgba(7, 12, 19, 0.92);
+            color: #e8f0ff;
+            padding: 0.5rem 0.62rem;
+            font-size: 0.78rem;
+            font-family: inherit;
+            letter-spacing: 0.02em;
+        }
+
+        .overlay-input:focus-visible {
+            border-color: #84f2ff;
+            box-shadow: 0 0 0 2px rgba(132, 242, 255, 0.2);
+            outline: none;
+        }
+
+        .overlay-advanced-note {
+            margin: 0.44rem 0 0;
+            color: #88a0c5;
+            font-size: 0.68rem;
+            line-height: 1.35;
+        }
+
+        .overlay-status {
+            margin-top: 0.9rem;
+            border-radius: 8px;
+            padding: 0.5rem 0.62rem;
+            border: 1px solid rgba(90, 120, 160, 0.42);
+            background: rgba(15, 24, 37, 0.75);
+            color: #c4d6f2;
+            font-size: 0.76rem;
+            letter-spacing: 0.03em;
+        }
+
+        .overlay-status.is-pending {
+            border-color: #3c6186;
+            color: #9dd5ff;
+        }
+
+        .overlay-status.is-ready,
+        .overlay-status.is-success {
+            border-color: #2c7358;
+            color: #92ffcb;
+        }
+
+        .overlay-status.is-fail {
+            border-color: #784455;
+            color: #ff9aae;
+        }
+
+        .overlay-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.65rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #69f0ff 0%, #ffd36b 100%);
+            color: #0a111c;
+            border: 1px solid #84f2ff;
+            padding: 0.85rem 2rem;
+            border-radius: 8px;
+            font-size: 0.96rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            box-shadow: 0 10px 24px rgba(2, 8, 20, 0.55);
+            font-family: 'Oxanium', sans-serif;
+            transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+            position: relative;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            filter: saturate(1.07);
+        }
+
+        .btn[disabled] {
+            cursor: not-allowed;
+            opacity: 0.68;
+            transform: none;
+            filter: saturate(0.72);
+        }
+
+        .btn.is-loading {
+            padding-right: 2.8rem;
+        }
+
+        .btn.is-loading::after {
+            content: '';
+            position: absolute;
+            right: 0.95rem;
+            top: 50%;
+            width: 0.9rem;
+            height: 0.9rem;
+            margin-top: -0.45rem;
+            border-radius: 50%;
+            border: 2px solid rgba(10, 17, 28, 0.35);
+            border-top-color: rgba(10, 17, 28, 0.9);
+            animation: btn-spin 0.7s linear infinite;
+        }
+
+        .btn-ghost {
+            background: linear-gradient(180deg, #2a2f3e, #1a202d);
+            color: #d8e6ff;
+            border-color: #4a5266;
+            box-shadow: none;
+        }
+
+        .btn-ghost:hover {
+            filter: none;
+            border-color: #6680a6;
+        }
+
+        .btn-test {
+            background: linear-gradient(180deg, #1d2b40, #152235);
+            color: #d8e6ff;
+            border: 1px solid #385172;
+            font-size: 0.73rem;
+            padding: 0.4rem 0.72rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-test:hover {
+            border-color: #4b6a95;
+            box-shadow: 0 0 14px rgba(105, 240, 255, 0.18);
+        }
+
+        .mixer-spaced {
+            margin-top: 1rem;
+        }
+
+        .mixer-span-full {
+            grid-column: span 3;
+        }
+
+        #boot-error {
+            color: #fda4af;
+            margin-top: 1rem;
+            font-size: 0.84rem;
+            text-align: left;
+            max-width: 100%;
+            display: none;
+        }
+
+        .solo-btn {
+            font-size: 0.62rem;
+            margin: 0;
+            background: linear-gradient(180deg, #2a2f3e, #1a202d);
+            border-color: #4a5266;
+        }
+
+        #audio-status {
+            color: var(--status-alert);
+            font-weight: bold;
+        }
+
+        #meter-canvas {
+            background: #000;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            margin-left: 0.4rem;
+        }
+
+        #pulse-led {
+            background: #f43f5e;
+            margin-left: 0.2rem;
+            opacity: 0;
+            transition: opacity 0.05s;
+        }
+
+        .led {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4d5f7c;
+        }
+
+        .led.on {
+            background: #63ffa4;
+            box-shadow: 0 0 12px #63ffa4;
+        }
+
+        @keyframes rise-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes btn-spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1120px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .mixer {
+                grid-template-columns: 1fr;
+            }
+
+            .ops-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        @media (max-width: 760px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .control-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .header-subline {
+                white-space: normal;
+            }
+
+            .route-row {
+                grid-template-columns: 1fr;
+                gap: 0.3rem;
+            }
+
+            .status-group {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .overlay-card {
+                padding: 1rem;
+            }
+
+            .overlay-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .overlay-actions .btn {
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
+
+    <div id="start-overlay" role="dialog" aria-modal="true" aria-labelledby="start-overlay-title" aria-describedby="start-overlay-sub">
+        <div class="overlay-card">
+            <p class="overlay-kicker">One-Button Start</p>
+            <h1 class="overlay-title" id="start-overlay-title">Launch Live Sonification</h1>
+            <p class="overlay-sub" id="start-overlay-sub">One click initializes the browser audio graph, confirms telemetry reachability, and maps hardware lanes to a tuned orchestration profile.</p>
+            <div class="overlay-health-grid" aria-live="polite">
+                <div class="overlay-health-row"><span>Profile</span><strong id="preflight-profile">Loading...</strong></div>
+                <div class="overlay-health-row"><span>Endpoint</span><strong id="preflight-endpoint">Checking...</strong></div>
+                <div class="overlay-health-row"><span>Readiness</span><strong id="preflight-readiness">Running pre-flight</strong></div>
+            </div>
+            <details class="overlay-advanced">
+                <summary>Advanced startup settings</summary>
+                <label for="manual-ip">Telemetry host or IP</label>
+                <input id="manual-ip" class="overlay-input" type="text" placeholder="192.168.31.50" autocomplete="off">
+                <p class="overlay-advanced-note">Leave blank to use the current browser host and fallback ports.</p>
+            </details>
+            <div id="overlay-status" class="overlay-status is-pending" role="status" aria-live="polite">Running pre-flight checks...</div>
+            <div class="overlay-actions">
+                <button class="btn" id="start-btn" aria-label="Start live sonification" disabled>CHECKING...</button>
+                <button class="btn btn-ghost" id="cancel-countdown-btn" type="button" hidden>Cancel</button>
+            </div>
+            <p id="boot-error" role="alert" aria-live="assertive"></p>
+        </div>
+    </div>
+
+    <main id="main-content">
+
+    <header>
+        <h1>Hardware Sonification Console</h1>
+        <div class="header-right">
+            <div class="header-subline">Realtime Telemetry Matrix :: Audio Bus Orchestration :: Node 192.168.31.50</div>
+            <div class="control-group">
+                <label class="theme-label" for="experience-select">Experience</label>
+                <select id="experience-select" class="theme-select" onchange="applyExperienceProfile(this.value)">
+                    <option value="night-patrol-techno">Night Patrol Techno</option>
+                    <option value="calm-observatory-ambient">Calm Observatory Ambient</option>
+                    <option value="high-load-alarm-industrial">High Load Alarm Industrial</option>
+                    <option value="chaos-festival-dnb">Chaos Festival Drum and Bass</option>
+                    <option value="droid-horror-escalation">Droid Horror Escalation</option>
+                    <option value="htop-observer">htop Observer</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="theme-label" for="escalation-regulator">Escalation Regulator</label>
+                <input id="escalation-regulator" type="range" min="50" max="250" value="100" oninput="setEscalationRegulator(this.value)">
+                <span id="escalation-regulator-val" class="status-text">1.00x</span>
+            </div>
+            <div class="control-group">
+                <label class="theme-label" for="volume-trim">Volume Trim</label>
+                <input id="volume-trim" type="range" min="-30" max="30" value="-6" step="0.5" oninput="setVolumeTrim(this.value)">
+                <span id="volume-trim-val" class="status-text">-6.0 dB</span>
+            </div>
+            <div class="control-group status-group" role="status" aria-live="polite" aria-atomic="false">
+                <div class="led" id="led"></div>
+                <span id="st-text" class="status-text" aria-live="polite">WS: Initializing...</span>
+                <span id="source-badge" class="source-badge local" aria-live="polite">SRC: LOCAL</span>
+                <span id="audio-status" aria-live="polite">Audio: ???</span>
+                <button class="btn-test" id="audio-toggle-btn" onclick="toggleLocalAudio()">Browser Audio: OFF</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card cpu" id="card-cpu">
+            <div class="metric-head">
+                <div class="metric-title">CPU Tick</div>
+                <div id="pulse-cpu" class="metric-pulse cpu"></div>
+                <button class="btn-test solo-btn" onclick="toggleSolo('cpu', this)">Solo</button>
+            </div>
+            <div class="metric-value" id="val-cpu">0.0%</div>
+            <div id="debug-cpu" class="debug-line">Note: - | Freq: -</div>
+            <canvas id="chart-cpu" role="img" aria-label="CPU telemetry trend chart">CPU telemetry trend chart</canvas>
+        </div>
+        <div class="card ram" id="card-ram">
+            <div class="metric-head">
+                <div class="metric-title">RAM Pulse</div>
+                <div id="pulse-ram" class="metric-pulse ram"></div>
+                <button class="btn-test solo-btn" onclick="toggleSolo('ram', this)">Solo</button>
+            </div>
+            <div class="metric-value" id="val-ram">0.0%</div>
+            <div id="debug-ram" class="debug-line">Note: - | Freq: -</div>
+            <canvas id="chart-ram" role="img" aria-label="RAM telemetry trend chart">RAM telemetry trend chart</canvas>
+        </div>
+        <div class="card gpu" id="card-gpu">
+            <div class="metric-head">
+                <div class="metric-title">GPU Grain</div>
+                <div id="pulse-gpu" class="metric-pulse gpu"></div>
+                <button class="btn-test solo-btn" onclick="toggleSolo('gpu', this)">Solo</button>
+            </div>
+            <div class="metric-value" id="val-gpu">0.0%</div>
+            <div id="debug-gpu" class="debug-line">Brilliance: -</div>
+            <canvas id="chart-gpu" role="img" aria-label="GPU telemetry trend chart">GPU telemetry trend chart</canvas>
+        </div>
+    </div>
+
+    <div class="mixer mixer-spaced" id="line-trimmer-panel">
+        <div class="mixer-channel">
+            <label for="line-trim-preset">Audio Line Trimmer Preset</label>
+            <select id="line-trim-preset" class="theme-select" onchange="applyLineTrimPreset(this.value)">
+                <option value="basic-bottom">Basic Bottom (3 Lines)</option>
+                <option value="ops-extended">Ops Extended (6 Lines)</option>
+                <option value="full-matrix">Full Matrix (10 Lines)</option>
+            </select>
+            <p id="line-trim-note" class="genre-note">Controls which audio lines are active and how much each line is trimmed.</p>
+            <button class="btn-test" onclick="testVoices()">Trigger Audio-Sync</button>
+        </div>
+        <div class="mixer-channel mixer-span-full">
+            <div id="line-trim-grid" class="line-trim-grid" role="group" aria-label="Audio line trimmer controls"></div>
+        </div>
+    </div>
+
+    <div class="mixer mixer-genre mixer-spaced">
+        <div class="mixer-channel mixer-span-full">
+            <p id="profile-note" class="genre-note">Experience profile active: unified scene, theme, and genre orchestration with adaptive escalation.</p>
+        </div>
+    </div>
+
+    <div class="ops-grid" style="display:none" aria-hidden="true">
+        <div class="terminal-box">
+            <div class="box-title">Runtime Load Matrix</div>
+            <div class="proc-row"><span class="proc-label">CPU</span><div class="proc-bar"><div class="proc-fill" id="proc-cpu"></div></div><span class="proc-val" id="proc-cpu-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">LOAD1</span><div class="proc-bar"><div class="proc-fill" id="proc-load1"></div></div><span class="proc-val" id="proc-load1-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">CPU FREQ</span><div class="proc-bar"><div class="proc-fill" id="proc-cpufreq"></div></div><span class="proc-val" id="proc-cpufreq-val">0</span></div>
+            <div class="proc-row"><span class="proc-label">CPU TEMP</span><div class="proc-bar"><div class="proc-fill" id="proc-cputemp"></div></div><span class="proc-val" id="proc-cputemp-val">0C</span></div>
+            <div class="proc-row"><span class="proc-label">RAM</span><div class="proc-bar"><div class="proc-fill" id="proc-ram"></div></div><span class="proc-val" id="proc-ram-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">SWAP</span><div class="proc-bar"><div class="proc-fill" id="proc-swap"></div></div><span class="proc-val" id="proc-swap-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">GPU</span><div class="proc-bar"><div class="proc-fill" id="proc-gpu"></div></div><span class="proc-val" id="proc-gpu-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">GPU TEMP</span><div class="proc-bar"><div class="proc-fill" id="proc-gputemp"></div></div><span class="proc-val" id="proc-gputemp-val">0C</span></div>
+            <div class="proc-row"><span class="proc-label">GPU PWR</span><div class="proc-bar"><div class="proc-fill" id="proc-gpupwr"></div></div><span class="proc-val" id="proc-gpupwr-val">0W</span></div>
+            <div class="proc-row"><span class="proc-label">VRAM</span><div class="proc-bar"><div class="proc-fill" id="proc-vram"></div></div><span class="proc-val" id="proc-vram-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">NET</span><div class="proc-bar"><div class="proc-fill" id="proc-net"></div></div><span class="proc-val" id="proc-net-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">NET PPS</span><div class="proc-bar"><div class="proc-fill" id="proc-netpps"></div></div><span class="proc-val" id="proc-netpps-val">0</span></div>
+            <div class="proc-row"><span class="proc-label">DISK</span><div class="proc-bar"><div class="proc-fill" id="proc-disk"></div></div><span class="proc-val" id="proc-disk-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">DISK IOPS</span><div class="proc-bar"><div class="proc-fill" id="proc-iops"></div></div><span class="proc-val" id="proc-iops-val">0</span></div>
+            <div class="proc-row"><span class="proc-label">IOWAIT</span><div class="proc-bar"><div class="proc-fill" id="proc-iowait"></div></div><span class="proc-val" id="proc-iowait-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">CTX/S</span><div class="proc-bar"><div class="proc-fill" id="proc-ctx"></div></div><span class="proc-val" id="proc-ctx-val">0</span></div>
+            <div class="proc-row"><span class="proc-label">INTR/S</span><div class="proc-bar"><div class="proc-fill" id="proc-intr"></div></div><span class="proc-val" id="proc-intr-val">0</span></div>
+            <div class="proc-row"><span class="proc-label">PROCS</span><div class="proc-bar"><div class="proc-fill" id="proc-procs"></div></div><span class="proc-val" id="proc-procs-val">0</span></div>
+        </div>
+        <div class="terminal-box routing-box">
+            <div class="box-title">Lane Routing Matrix</div>
+            <div class="route-grid">
+                <div class="route-row"><span>CPU UTIL</span><select class="route-select" aria-label="CPU routing lane" data-lane="cpu"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="CPU routing sensitivity" min="0" max="200" value="100" data-lane="cpu"><span class="sens-val" id="sens-cpu">1.0</span></div></div>
+                <div class="route-row"><span>RAM UTIL</span><select class="route-select" aria-label="RAM routing lane" data-lane="ram"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="RAM routing sensitivity" min="0" max="200" value="100" data-lane="ram"><span class="sens-val" id="sens-ram">1.0</span></div></div>
+                <div class="route-row"><span>GPU UTIL</span><select class="route-select" aria-label="GPU routing lane" data-lane="gpu"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="GPU routing sensitivity" min="0" max="200" value="100" data-lane="gpu"><span class="sens-val" id="sens-gpu">1.0</span></div></div>
+                <div class="route-row"><span>NET PPS</span><select class="route-select" aria-label="NET PPS routing lane" data-lane="net_pps"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="NET PPS routing sensitivity" min="0" max="200" value="100" data-lane="net_pps"><span class="sens-val" id="sens-net_pps">1.0</span></div></div>
+                <div class="route-row"><span>DISK IOPS</span><select class="route-select" aria-label="DISK IOPS routing lane" data-lane="disk_iops"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="DISK IOPS routing sensitivity" min="0" max="200" value="100" data-lane="disk_iops"><span class="sens-val" id="sens-disk_iops">1.0</span></div></div>
+                <div class="route-row"><span>CPU TEMP</span><select class="route-select" aria-label="CPU TEMP routing lane" data-lane="cpu_temp_c"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="CPU TEMP routing sensitivity" min="0" max="200" value="100" data-lane="cpu_temp_c"><span class="sens-val" id="sens-cpu_temp_c">1.0</span></div></div>
+                <div class="route-row"><span>GPU TEMP</span><select class="route-select" aria-label="GPU TEMP routing lane" data-lane="gpu_temp_c"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="GPU TEMP routing sensitivity" min="0" max="200" value="100" data-lane="gpu_temp_c"><span class="sens-val" id="sens-gpu_temp_c">1.0</span></div></div>
+                <div class="route-row"><span>GPU PWR</span><select class="route-select" aria-label="GPU PWR routing lane" data-lane="gpu_power_w"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="GPU PWR routing sensitivity" min="0" max="200" value="100" data-lane="gpu_power_w"><span class="sens-val" id="sens-gpu_power_w">1.0</span></div></div>
+                <div class="route-row"><span>SWAP</span><select class="route-select" aria-label="SWAP routing lane" data-lane="swap_pct"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="SWAP routing sensitivity" min="0" max="200" value="100" data-lane="swap_pct"><span class="sens-val" id="sens-swap_pct">1.0</span></div></div>
+                <div class="route-row"><span>LOAD1</span><select class="route-select" aria-label="LOAD1 routing lane" data-lane="load1_pct"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="LOAD1 routing sensitivity" min="0" max="200" value="100" data-lane="load1_pct"><span class="sens-val" id="sens-load1_pct">1.0</span></div></div>
+                <div class="route-row"><span>IOWAIT</span><select class="route-select" aria-label="IOWAIT routing lane" data-lane="iowait_pct"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="IOWAIT routing sensitivity" min="0" max="200" value="100" data-lane="iowait_pct"><span class="sens-val" id="sens-iowait_pct">1.0</span></div></div>
+                <div class="route-row"><span>CTX/S</span><select class="route-select" aria-label="CTX/S routing lane" data-lane="ctx_switches_ps"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="CTX/S routing sensitivity" min="0" max="200" value="100" data-lane="ctx_switches_ps"><span class="sens-val" id="sens-ctx_switches_ps">1.0</span></div></div>
+                <div class="route-row"><span>INTR/S</span><select class="route-select" aria-label="INTR/S routing lane" data-lane="interrupts_ps"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="INTR/S routing sensitivity" min="0" max="200" value="100" data-lane="interrupts_ps"><span class="sens-val" id="sens-interrupts_ps">1.0</span></div></div>
+                <div class="route-row"><span>PROCS</span><select class="route-select" aria-label="PROCS routing lane" data-lane="proc_count"><option value="rhythm">RHYTHM</option><option value="bass">BASS</option><option value="pad">PAD</option><option value="fx">FX</option></select><div class="sens-wrap"><input type="range" class="sens-slider" aria-label="PROCS routing sensitivity" min="0" max="200" value="100" data-lane="proc_count"><span class="sens-val" id="sens-proc_count">1.0</span></div></div>
+            </div>
+            <div class="proc-row"><span class="proc-label">RHYTHM</span><div class="proc-bar"><div class="proc-fill" id="bus-rhythm"></div></div><span class="proc-val" id="bus-rhythm-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">BASS</span><div class="proc-bar"><div class="proc-fill" id="bus-bass"></div></div><span class="proc-val" id="bus-bass-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">PAD</span><div class="proc-bar"><div class="proc-fill" id="bus-pad"></div></div><span class="proc-val" id="bus-pad-val">0%</span></div>
+            <div class="proc-row"><span class="proc-label">FX</span><div class="proc-bar"><div class="proc-fill" id="bus-fx"></div></div><span class="proc-val" id="bus-fx-val">0%</span></div>
+        </div>
+    </div>
+
+    </main>
+
+    <script>
+        let cpuSynth, ramSynth, gpuSynth, netSynth, diskSynth, tempSynth, swapSynth, pressureSynth, powerSynth, padSynth, master, meter, limiter, compressor;
+        let running = false;
+        let socket = null;
+        let controlCommandSeq = 0;
+        let soloModes = { cpu: false, ram: false, gpu: false };
+        const laneHitCounters = { net: 0, disk: 0, temp: 0, swap: 0, power: 0, pressure: 0, pad: 0 };
+        const usageMonitorHistory = { cpu: [], ram: [], gpu: [] };
+        const usageMonitorMaxPoints = 220;
+        const themePalette = { cpu: '#ff7272', ram: '#62f7b3', gpu: '#ffb45e', line: '#26344b' };
+        const uiRefs = {};
+        let pendingUiFrame = null;
+        let pendingUiBus = null;
+        let uiFlushScheduled = false;
+        let lastPacketTs = 0;
+        let packetRateHz = 0;
+        const musicalState = {
+            stress: 0.2,
+            warmth: 0.5,
+            tension: 0.2,
+            lastCpu: 0,
+            lastGpu: 0,
+            phraseAnchorMidi: 60,
+            motif: [60, 62, 65, 62, 60, 58, 60, 62],
+            motifIndex: 0,
+            phraseCount: 0,
+            dissonanceDebt: 0,
+            lastLeadMidi: 60
+        };
+        const THEME_STORAGE_KEY = 'sonifyTheme';
+        const SCENE_STORAGE_KEY = 'sonifyScene';
+        const CUSTOM_SCENE_STORAGE_KEY = 'sonifyCustomScene';
+        const EXPERIENCE_PROFILE_STORAGE_KEY = 'sonifyExperienceProfile';
+        const GENRE_STORAGE_KEY = 'sonifyGenre';
+        const GENRE_DENSITY_STORAGE_KEY = 'sonifyGenreDensity';
+        const ESCALATION_REGULATOR_STORAGE_KEY = 'sonifyEscalationRegulator';
+        const VOLUME_TRIM_DB_STORAGE_KEY = 'sonifyVolumeTrimDb';
+        const LEGACY_OUTPUT_TRIM_DB_STORAGE_KEY = 'sonifyOutputTrimDb';
+        const LINE_TRIM_PRESET_STORAGE_KEY = 'sonifyLineTrimPreset';
+        const LINE_TRIM_VALUES_STORAGE_KEY = 'sonifyLineTrimValues';
+        const LOCAL_AUDIO_STORAGE_KEY = 'sonifyLocalAudioEnabled';
+        const START_BUTTON_READY_LABEL = 'START LIVE SONIFICATION';
+        const START_BUTTON_RETRY_LABEL = 'RETRY PRE-FLIGHT';
+        const START_BUTTON_LOADING_LABEL = 'INITIALIZING...';
+        const LIMITER_THRESHOLD_DB = -6;
+        const MASTER_HEADROOM_GAIN = 0.18;
+        const VOLUME_TRIM_DB_DEFAULT = -6;
+        const VOLUME_TRIM_DB_MIN = -30;
+        const VOLUME_TRIM_DB_MAX = 30;
+        const COMPRESSOR_SETTINGS = Object.freeze({ threshold: -26, ratio: 4.2, attack: 0.003, release: 0.28, knee: 20 });
+        const LEAD_BASE_DB_MIN = -38;
+        const LEAD_BASE_DB_MAX = -11;
+        const LEGACY_LEAD_GAIN_INPUT_MIN = -60;
+        const LEGACY_LEAD_GAIN_INPUT_MAX = 10;
+        const LEAD_SCENE_GAINS_VERSION = 2;
+        const VOICE_DB_MIN = -60;
+        const VOICE_DB_MAX = 0;
+        const LEGACY_LEAD_SCENE_GAIN_DEFAULTS = Object.freeze({ cpu: 6, ram: 1, gpu: -4 });
+        const LEAD_SCENE_GAIN_DEFAULTS = Object.freeze({ cpu: -13.5, ram: -15.2, gpu: -16.8 });
+        const LINE_TRIM_DB_DEFAULT = 0;
+        const LINE_TRIM_DB_MIN = -30;
+        const LINE_TRIM_DB_MAX = 30;
+        const AUX_VOICE_DB = Object.freeze({
+            net: -18,
+            disk: -18,
+            temp: -17,
+            swap: -20,
+            power: -18,
+            pressure: -18,
+            pad: -22,
+        });
+        const AUDIO_LINE_DEFS = Object.freeze([
+            { id: 'cpu', label: 'CPU Gain (Tick)' },
+            { id: 'ram', label: 'RAM Gain (Pulse)' },
+            { id: 'gpu', label: 'GPU Gain (Grain)' },
+            { id: 'net', label: 'NET Texture' },
+            { id: 'disk', label: 'DISK Pulse' },
+            { id: 'temp', label: 'TEMP FM' },
+            { id: 'swap', label: 'SWAP Layer' },
+            { id: 'power', label: 'POWER Metal' },
+            { id: 'pressure', label: 'PRESSURE AM' },
+            { id: 'pad', label: 'PAD Bed' },
+        ]);
+        const AUDIO_LINE_IDS = AUDIO_LINE_DEFS.map((line) => line.id);
+        const LINE_TRIM_PRESETS = Object.freeze({
+            'basic-bottom': {
+                note: 'Bottom layer: only CPU, RAM, and GPU lines are active.',
+                enabled: ['cpu', 'ram', 'gpu'],
+                trimDb: {
+                    cpu: 0,
+                    ram: 0,
+                    gpu: 0,
+                    net: -30,
+                    disk: -30,
+                    temp: -30,
+                    swap: -30,
+                    power: -30,
+                    pressure: -30,
+                    pad: -30,
+                },
+            },
+            'ops-extended': {
+                note: 'Extended layer: adds network, disk, and thermal lines for richer diagnostics.',
+                enabled: ['cpu', 'ram', 'gpu', 'net', 'disk', 'temp'],
+                trimDb: {
+                    cpu: 0,
+                    ram: 0,
+                    gpu: 0,
+                    net: -2,
+                    disk: -1,
+                    temp: -2,
+                    swap: -28,
+                    power: -24,
+                    pressure: -22,
+                    pad: -20,
+                },
+            },
+            'full-matrix': {
+                note: 'Full matrix: all lines enabled with balanced trims.',
+                enabled: ['cpu', 'ram', 'gpu', 'net', 'disk', 'temp', 'swap', 'power', 'pressure', 'pad'],
+                trimDb: {
+                    cpu: 0,
+                    ram: 0,
+                    gpu: 0,
+                    net: -1,
+                    disk: -1,
+                    temp: -1,
+                    swap: -3,
+                    power: -3,
+                    pressure: -2,
+                    pad: -4,
+                },
+            },
+        });
+        const DEFAULT_LINE_TRIM_PRESET = 'ops-extended';
+        let volumeTrimDb = VOLUME_TRIM_DB_DEFAULT;
+        let currentLineTrimPreset = DEFAULT_LINE_TRIM_PRESET;
+        let lineTrimDb = {};
+        let leadSceneGains = { ...LEAD_SCENE_GAIN_DEFAULTS };
+        let activeAudioLines = new Set(AUDIO_LINE_IDS);
+        let localAudioEnabled = false;
+        let bootInProgress = false;
+        let preflightInProgress = null;
+        let preflightDebounceTimer = null;
+        let countdownInterval = null;
+        const preflightState = {
+            ready: false,
+            endpointLabel: 'Checking...',
+            message: 'Running pre-flight checks...'
+        };
+        const THEMES = ['default-neon', 'crt-green', 'amber-ops', 'ice-lab', 'htop-tui'];
+        const GENRE_PROFILES = {
+            techno: {
+                label: 'Techno',
+                desc: 'Tight minor groove with punchy transients and stable pulse.',
+                scale: [0, 2, 3, 5, 7, 8, 10],
+                root: 0,
+                transpose: 0,
+                cadenceFactor: 0.85,
+                cpuOsc: 'square',
+                ramOsc: 'triangle',
+                netNoise: 'white'
+            },
+            ambient: {
+                label: 'Ambient',
+                desc: 'Slow major texture with wider spacing and softer grain.',
+                scale: [0, 2, 4, 7, 9],
+                root: 0,
+                transpose: -12,
+                cadenceFactor: 1.9,
+                cpuOsc: 'sine',
+                ramOsc: 'sine',
+                netNoise: 'pink'
+            },
+            orchestral: {
+                label: 'Orchestral',
+                desc: 'Dorian-like movement with broader pads and dramatic accents.',
+                scale: [0, 2, 3, 5, 7, 9, 10],
+                root: 0,
+                transpose: -5,
+                cadenceFactor: 1.35,
+                cpuOsc: 'triangle',
+                ramOsc: 'triangle',
+                netNoise: 'pink'
+            },
+            jazz: {
+                label: 'Jazz',
+                desc: 'Mixolydian color with elastic timing and brighter harmony.',
+                scale: [0, 2, 4, 5, 7, 9, 10],
+                root: 2,
+                transpose: 0,
+                cadenceFactor: 1.05,
+                cpuOsc: 'triangle',
+                ramOsc: 'sine',
+                netNoise: 'white'
+            },
+            dnb: {
+                label: 'Drum and Bass',
+                desc: 'Fast cadence with darker minor mapping and dense percussion.',
+                scale: [0, 2, 3, 5, 7, 8, 10],
+                root: 7,
+                transpose: -12,
+                cadenceFactor: 0.62,
+                cpuOsc: 'square',
+                ramOsc: 'triangle',
+                netNoise: 'white'
+            },
+            industrial: {
+                label: 'Industrial',
+                desc: 'Aggressive chromatic edge with metallic emphasis and pressure hits.',
+                scale: [0, 1, 3, 5, 6, 8, 10],
+                root: 0,
+                transpose: -7,
+                cadenceFactor: 0.72,
+                cpuOsc: 'sawtooth',
+                ramOsc: 'square',
+                netNoise: 'brown'
+            }
+        };
+        let currentGenre = 'techno';
+        let genreDensity = 1;
+        let currentExperienceProfile = 'night-patrol-techno';
+        let escalationRegulator = 1;
+        const laneRouting = {
+            cpu: 'rhythm',
+            ram: 'bass',
+            gpu: 'fx',
+            net_pps: 'rhythm',
+            disk_iops: 'rhythm',
+            cpu_temp_c: 'pad',
+            gpu_temp_c: 'fx',
+            gpu_power_w: 'fx',
+            swap_pct: 'pad',
+            load1_pct: 'bass',
+            iowait_pct: 'fx',
+            ctx_switches_ps: 'rhythm',
+            interrupts_ps: 'rhythm',
+            proc_count: 'pad',
+        };
+        const laneSensitivity = {
+            cpu: 1,
+            ram: 1,
+            gpu: 1,
+            net_pps: 1,
+            disk_iops: 1,
+            cpu_temp_c: 1,
+            gpu_temp_c: 1,
+            gpu_power_w: 1,
+            swap_pct: 1,
+            load1_pct: 1,
+            iowait_pct: 1,
+            ctx_switches_ps: 1,
+            interrupts_ps: 1,
+            proc_count: 1,
+        };
+        const SCENES = {
+            'night-patrol': {
+                theme: 'crt-green',
+                gains: { cpu: -15.6, ram: -17.8, gpu: -19.2 },
+                routing: {
+                    cpu: 'rhythm', ram: 'bass', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'rhythm',
+                    cpu_temp_c: 'pad', gpu_temp_c: 'fx', gpu_power_w: 'fx', swap_pct: 'pad',
+                    load1_pct: 'bass', iowait_pct: 'fx', ctx_switches_ps: 'rhythm', interrupts_ps: 'rhythm', proc_count: 'pad'
+                },
+                sensitivity: {
+                    cpu: 1.1, ram: 0.9, gpu: 0.95, net_pps: 1.35, disk_iops: 1.2, cpu_temp_c: 0.8,
+                    gpu_temp_c: 0.9, gpu_power_w: 1.0, swap_pct: 0.7, load1_pct: 0.9, iowait_pct: 1.1,
+                    ctx_switches_ps: 1.2, interrupts_ps: 1.25, proc_count: 0.85
+                }
+            },
+            'high-load-alarm': {
+                theme: 'amber-ops',
+                gains: { cpu: -12.2, ram: -13.4, gpu: -14.2 },
+                routing: {
+                    cpu: 'rhythm', ram: 'bass', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'rhythm',
+                    cpu_temp_c: 'fx', gpu_temp_c: 'fx', gpu_power_w: 'fx', swap_pct: 'pad',
+                    load1_pct: 'bass', iowait_pct: 'fx', ctx_switches_ps: 'rhythm', interrupts_ps: 'rhythm', proc_count: 'bass'
+                },
+                sensitivity: {
+                    cpu: 1.3, ram: 1.05, gpu: 1.25, net_pps: 1.45, disk_iops: 1.35, cpu_temp_c: 1.5,
+                    gpu_temp_c: 1.45, gpu_power_w: 1.5, swap_pct: 1.0, load1_pct: 1.15, iowait_pct: 1.5,
+                    ctx_switches_ps: 1.4, interrupts_ps: 1.45, proc_count: 1.05
+                }
+            },
+            'calm-observatory': {
+                theme: 'ice-lab',
+                gains: { cpu: -18.8, ram: -19.8, gpu: -21.5 },
+                routing: {
+                    cpu: 'pad', ram: 'pad', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'bass',
+                    cpu_temp_c: 'pad', gpu_temp_c: 'pad', gpu_power_w: 'fx', swap_pct: 'pad',
+                    load1_pct: 'pad', iowait_pct: 'fx', ctx_switches_ps: 'bass', interrupts_ps: 'rhythm', proc_count: 'pad'
+                },
+                sensitivity: {
+                    cpu: 0.65, ram: 0.7, gpu: 0.7, net_pps: 0.85, disk_iops: 0.75, cpu_temp_c: 0.7,
+                    gpu_temp_c: 0.7, gpu_power_w: 0.75, swap_pct: 0.6, load1_pct: 0.6, iowait_pct: 0.7,
+                    ctx_switches_ps: 0.8, interrupts_ps: 0.8, proc_count: 0.7
+                }
+            },
+            'chaos-festival': {
+                theme: 'default-neon',
+                gains: { cpu: -11.4, ram: -12.4, gpu: -13.1 },
+                routing: {
+                    cpu: 'rhythm', ram: 'rhythm', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'bass',
+                    cpu_temp_c: 'fx', gpu_temp_c: 'fx', gpu_power_w: 'fx', swap_pct: 'bass',
+                    load1_pct: 'rhythm', iowait_pct: 'fx', ctx_switches_ps: 'rhythm', interrupts_ps: 'rhythm', proc_count: 'bass'
+                },
+                sensitivity: {
+                    cpu: 1.45, ram: 1.35, gpu: 1.5, net_pps: 1.6, disk_iops: 1.5, cpu_temp_c: 1.35,
+                    gpu_temp_c: 1.45, gpu_power_w: 1.5, swap_pct: 1.25, load1_pct: 1.35, iowait_pct: 1.45,
+                    ctx_switches_ps: 1.6, interrupts_ps: 1.6, proc_count: 1.25
+                }
+            }
+        };
+
+        const EXPERIENCE_PROFILES = {
+            'night-patrol-techno': {
+                label: 'Night Patrol Techno',
+                scene: 'night-patrol',
+                theme: 'crt-green',
+                genre: 'techno',
+                genreDensity: 1.0,
+                escalationRegulator: 1.0,
+                desc: 'Covert patrol pulse with tight synth rhythm and moderate escalation.'
+            },
+            'calm-observatory-ambient': {
+                label: 'Calm Observatory Ambient',
+                scene: 'calm-observatory',
+                theme: 'ice-lab',
+                genre: 'ambient',
+                genreDensity: 0.8,
+                escalationRegulator: 0.75,
+                desc: 'Wide harmonic bed and restrained escalation for long-form listening.'
+            },
+            'high-load-alarm-industrial': {
+                label: 'High Load Alarm Industrial',
+                scene: 'high-load-alarm',
+                theme: 'amber-ops',
+                genre: 'industrial',
+                genreDensity: 1.35,
+                escalationRegulator: 1.55,
+                desc: 'Warning-state grit with aggressive transients and rapid tension ramp.'
+            },
+            'chaos-festival-dnb': {
+                label: 'Chaos Festival Drum and Bass',
+                scene: 'chaos-festival',
+                theme: 'default-neon',
+                genre: 'dnb',
+                genreDensity: 1.5,
+                escalationRegulator: 1.85,
+                desc: 'High-density breakbeat swarm with heavy machine-pressure acceleration.'
+            },
+            'droid-horror-escalation': {
+                label: 'Droid Horror Escalation',
+                scene: 'high-load-alarm',
+                theme: 'amber-ops',
+                genre: 'industrial',
+                genreDensity: 1.75,
+                escalationRegulator: 2.2,
+                desc: 'Rising alarm-chatter profile that drives fast terrifying escalation.'
+            },
+            'htop-observer': {
+                label: 'htop Observer',
+                scene: 'calm-observatory',
+                theme: 'htop-tui',
+                genre: 'ambient',
+                genreDensity: 0.85,
+                escalationRegulator: 0.9,
+                desc: 'Hard terminal black with saturated neon glows — faithful to the htop TUI aesthetic.'
+            }
+        };
+
+        const log = (m) => {
+            const c = document.getElementById('debug-console');
+            if (c) {
+                const e = document.createElement('div');
+                e.textContent = `[${new Date().toLocaleTimeString()}] ${m}`;
+                c.appendChild(e);
+                c.scrollTop = c.scrollHeight;
+            }
+        };
+
+        const mapV = (v, inM, inX, outM, outX) => {
+            const clamped = Math.max(inM, Math.min(inX, v));
+            return (clamped - inM) * (outX - outM) / (inX - inM) + outM;
+        };
+
+        const clamp01 = (v) => Math.max(0, Math.min(1, v || 0));
+        const clampDb = (value) => Math.max(VOICE_DB_MIN, Math.min(VOICE_DB_MAX, value || 0));
+        const clampLineTrimDb = (value) => Math.max(LINE_TRIM_DB_MIN, Math.min(LINE_TRIM_DB_MAX, value || 0));
+
+        function createLineTrimMap(defaultValue = LINE_TRIM_DB_DEFAULT) {
+            const map = {};
+            AUDIO_LINE_IDS.forEach((lineId) => {
+                map[lineId] = clampLineTrimDb(defaultValue);
+            });
+            return map;
+        }
+
+        function normalizeLineTrimMap(rawMap = {}) {
+            const normalized = createLineTrimMap();
+            if (!rawMap || typeof rawMap !== 'object') return normalized;
+            AUDIO_LINE_IDS.forEach((lineId) => {
+                const parsed = parseFloat(rawMap[lineId]);
+                if (Number.isFinite(parsed)) {
+                    normalized[lineId] = clampLineTrimDb(parsed);
+                }
+            });
+            return normalized;
+        }
+
+        function getLineTrimDb(lineId) {
+            if (!AUDIO_LINE_IDS.includes(lineId)) return 0;
+            const parsed = parseFloat(lineTrimDb[lineId]);
+            return Number.isFinite(parsed) ? clampLineTrimDb(parsed) : 0;
+        }
+
+        function isAudioLineActive(lineId) {
+            return !!(lineId && activeAudioLines && activeAudioLines.has(lineId));
+        }
+
+        function getEscalationEnergy() {
+            return clamp01((escalationRegulator - 0.5) / 2);
+        }
+
+        function getCadenceScale() {
+            return 1 + (getEscalationEnergy() * 0.55);
+        }
+
+        function getLongFormMotion(period = 48, offset = 0) {
+            return clamp01((Math.sin((packetCount + offset) / period) + 1) * 0.5);
+        }
+
+        function clampLeadBaseDb(value) {
+            return Math.max(LEAD_BASE_DB_MIN, Math.min(LEAD_BASE_DB_MAX, value || 0));
+        }
+
+        function convertLegacyLeadGainInputToBaseDb(rawValue, fallbackLegacyValue) {
+            const parsed = parseFloat(rawValue);
+            const safeLegacyValue = Number.isFinite(parsed) ? parsed : fallbackLegacyValue;
+            const clampedLegacyValue = Math.max(LEGACY_LEAD_GAIN_INPUT_MIN, Math.min(LEGACY_LEAD_GAIN_INPUT_MAX, safeLegacyValue));
+            return clampLeadBaseDb(mapV(clampedLegacyValue, LEGACY_LEAD_GAIN_INPUT_MIN, LEGACY_LEAD_GAIN_INPUT_MAX, LEAD_BASE_DB_MIN, LEAD_BASE_DB_MAX));
+        }
+
+        function sanitizeLeadBaseDb(rawValue, fallbackBaseDb) {
+            const parsed = parseFloat(rawValue);
+            const safeValue = Number.isFinite(parsed) ? parsed : fallbackBaseDb;
+            return clampLeadBaseDb(safeValue);
+        }
+
+        function getLeadSceneBaseDb(lineId) {
+            const fallback = LEAD_SCENE_GAIN_DEFAULTS[lineId];
+            return sanitizeLeadBaseDb(leadSceneGains[lineId], Number.isFinite(fallback) ? fallback : -18);
+        }
+
+        function setLeadVoiceVolume(synth, lineId, dynamicOffset = 0) {
+            if (!synth) return;
+            if (lineId && !isAudioLineActive(lineId)) {
+                synth.volume.value = -Infinity;
+                return;
+            }
+            const baseDb = getLeadSceneBaseDb(lineId);
+            const trim = getLineTrimDb(lineId);
+            synth.volume.value = clampDb(baseDb + dynamicOffset + trim);
+        }
+
+        function applyAuxVoiceVolume(synth, baseDb, lineId) {
+            if (!synth) return;
+            if (lineId && !isAudioLineActive(lineId)) {
+                synth.volume.value = -Infinity;
+                return;
+            }
+            synth.volume.value = clampDb(baseDb + getLineTrimDb(lineId));
+        }
+
+        function dbToLinearGain(db) {
+            return Math.pow(10, (db || 0) / 20);
+        }
+
+        function getTargetMasterGain() {
+            return MASTER_HEADROOM_GAIN * dbToLinearGain(volumeTrimDb);
+        }
+
+        function applyMasterOutputGain() {
+            if (!master || !master.gain) return;
+            const target = getTargetMasterGain();
+            if (typeof master.gain.rampTo === 'function') {
+                master.gain.rampTo(target, 0.08);
+            } else {
+                master.gain.value = target;
+            }
+        }
+
+        function setVolumeTrim(rawVal, persist = true) {
+            const parsed = parseFloat(rawVal);
+            const next = Number.isFinite(parsed)
+                ? Math.max(VOLUME_TRIM_DB_MIN, Math.min(VOLUME_TRIM_DB_MAX, parsed))
+                : VOLUME_TRIM_DB_DEFAULT;
+            volumeTrimDb = next;
+            if (persist) {
+                localStorage.setItem(VOLUME_TRIM_DB_STORAGE_KEY, String(next));
+                localStorage.removeItem(LEGACY_OUTPUT_TRIM_DB_STORAGE_KEY);
+            }
+
+            const slider = document.getElementById('volume-trim');
+            if (slider && Number(slider.value) !== next) slider.value = String(next);
+            const valueEl = document.getElementById('volume-trim-val');
+            if (valueEl) valueEl.innerText = `${next.toFixed(1)} dB`;
+
+            applyMasterOutputGain();
+            updateAudioStatus();
+        }
+
+        function initVolumeTrim() {
+            const storedPrimary = parseFloat(localStorage.getItem(VOLUME_TRIM_DB_STORAGE_KEY) || '');
+            const storedLegacy = parseFloat(localStorage.getItem(LEGACY_OUTPUT_TRIM_DB_STORAGE_KEY) || '');
+            const initial = Number.isFinite(storedPrimary)
+                ? storedPrimary
+                : (Number.isFinite(storedLegacy) ? storedLegacy : VOLUME_TRIM_DB_DEFAULT);
+            setVolumeTrim(initial, false);
+        }
+
+        function buildLineTrimRows() {
+            const grid = document.getElementById('line-trim-grid');
+            if (!grid || grid.childElementCount > 0) return;
+
+            AUDIO_LINE_DEFS.forEach((line) => {
+                const row = document.createElement('div');
+                row.className = 'line-trim-row';
+                row.setAttribute('data-line', line.id);
+
+                const sliderId = `line-trim-${line.id}`;
+
+                const label = document.createElement('label');
+                label.setAttribute('for', sliderId);
+                label.innerText = line.label;
+
+                const value = document.createElement('span');
+                value.className = 'line-trim-value';
+                value.id = `${sliderId}-val`;
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.id = sliderId;
+                slider.min = String(LINE_TRIM_DB_MIN);
+                slider.max = String(LINE_TRIM_DB_MAX);
+                slider.step = '0.5';
+                slider.setAttribute('aria-label', `${line.label} trim`);
+                slider.addEventListener('input', () => {
+                    setLineTrim(line.id, slider.value);
+                });
+
+                row.appendChild(label);
+                row.appendChild(value);
+                row.appendChild(slider);
+                grid.appendChild(row);
+            });
+        }
+
+        function refreshLineTrimRow(lineId) {
+            const value = getLineTrimDb(lineId);
+            const slider = document.getElementById(`line-trim-${lineId}`);
+            const valueEl = document.getElementById(`line-trim-${lineId}-val`);
+            if (slider && Number(slider.value) !== value) slider.value = String(value);
+            if (valueEl) valueEl.innerText = `${value.toFixed(1)} dB`;
+        }
+
+        function refreshLineTrimPresetUi() {
+            const preset = LINE_TRIM_PRESETS[currentLineTrimPreset] || LINE_TRIM_PRESETS[DEFAULT_LINE_TRIM_PRESET];
+            const activeLines = new Set(preset.enabled || []);
+            const select = document.getElementById('line-trim-preset');
+            const note = document.getElementById('line-trim-note');
+
+            activeAudioLines = new Set(activeLines);
+
+            if (select && select.value !== currentLineTrimPreset) select.value = currentLineTrimPreset;
+            if (note) note.innerText = preset.note || '';
+
+            AUDIO_LINE_IDS.forEach((lineId) => {
+                const row = document.querySelector(`.line-trim-row[data-line="${lineId}"]`);
+                const slider = document.getElementById(`line-trim-${lineId}`);
+                if (!row || !slider) return;
+                const enabled = activeLines.has(lineId);
+                row.classList.toggle('is-hidden', !enabled);
+                slider.disabled = !enabled;
+            });
+        }
+
+        function persistLineTrimValues() {
+            localStorage.setItem(LINE_TRIM_VALUES_STORAGE_KEY, JSON.stringify(lineTrimDb));
+        }
+
+        function setLineTrim(lineId, rawVal, persist = true) {
+            if (!AUDIO_LINE_IDS.includes(lineId)) return;
+            const parsed = parseFloat(rawVal);
+            const next = Number.isFinite(parsed) ? clampLineTrimDb(parsed) : LINE_TRIM_DB_DEFAULT;
+            lineTrimDb[lineId] = next;
+            refreshLineTrimRow(lineId);
+            if (persist) persistLineTrimValues();
+            updateMixer();
+        }
+
+        function applyLineTrimPreset(presetName, options = {}) {
+            const persist = options.persist !== false;
+            const useCurrentValues = options.useCurrentValues === true;
+            const normalized = LINE_TRIM_PRESETS[presetName] ? presetName : DEFAULT_LINE_TRIM_PRESET;
+            const preset = LINE_TRIM_PRESETS[normalized];
+            currentLineTrimPreset = normalized;
+
+            if (!useCurrentValues) {
+                lineTrimDb = normalizeLineTrimMap(preset.trimDb || {});
+            } else {
+                lineTrimDb = normalizeLineTrimMap(lineTrimDb);
+            }
+
+            refreshLineTrimPresetUi();
+            AUDIO_LINE_IDS.forEach((lineId) => refreshLineTrimRow(lineId));
+
+            if (persist) {
+                localStorage.setItem(LINE_TRIM_PRESET_STORAGE_KEY, normalized);
+                persistLineTrimValues();
+            }
+
+            updateMixer();
+        }
+
+        function initLineTrimmer() {
+            buildLineTrimRows();
+
+            let hasStoredMap = false;
+            try {
+                const parsed = JSON.parse(localStorage.getItem(LINE_TRIM_VALUES_STORAGE_KEY) || 'null');
+                if (parsed && typeof parsed === 'object') {
+                    lineTrimDb = normalizeLineTrimMap(parsed);
+                    hasStoredMap = true;
+                }
+            } catch (_err) {
+                lineTrimDb = createLineTrimMap();
+            }
+
+            if (!hasStoredMap) {
+                lineTrimDb = createLineTrimMap();
+            }
+
+            const storedPreset = localStorage.getItem(LINE_TRIM_PRESET_STORAGE_KEY) || DEFAULT_LINE_TRIM_PRESET;
+            applyLineTrimPreset(storedPreset, { persist: false, useCurrentValues: hasStoredMap });
+        }
+
+        function computeMixDensity(bus, hw) {
+            const avgBus = ((bus?.rhythm || 0) + (bus?.bass || 0) + (bus?.pad || 0) + (bus?.fx || 0)) / 4;
+            return clamp01((avgBus * 0.68) + ((hw?.pressure || 0) * 0.32));
+        }
+
+        function computeTriggerLevel(baseLevel, mixDensity, excitement = 0) {
+            const escalationEnergy = getEscalationEnergy();
+            const densityDuck = 1 - mixDensity * (0.32 + escalationEnergy * 0.08);
+            const excitementLift = 0.88 + clamp01(excitement) * 0.12;
+            const sustainabilityCeiling = 0.94 - escalationEnergy * 0.06;
+            return clamp01(baseLevel * densityDuck * excitementLift * sustainabilityCeiling);
+        }
+
+        function nextControlCommandId() {
+            controlCommandSeq = (controlCommandSeq + 1) % 1000000;
+            return `ui-${Date.now()}-${controlCommandSeq}`;
+        }
+
+        function sendControlCommand(update) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+            try {
+                socket.send(JSON.stringify({ command_id: nextControlCommandId(), ...update }));
+                return true;
+            } catch (_err) {
+                return false;
+            }
+        }
+
+        function getGenreProfile() {
+            return GENRE_PROFILES[currentGenre] || GENRE_PROFILES.techno;
+        }
+
+        function genreStep(base) {
+            const profile = getGenreProfile();
+            const cadenceBase = (base * (profile.cadenceFactor || 1)) / Math.max(0.5, genreDensity);
+            const sustained = cadenceBase / getCadenceScale();
+            return Math.max(2, Math.round(sustained));
+        }
+
+        function quantizeMidiToScale(midiNote, rootPc, scale) {
+            const octaveBase = Math.floor(midiNote / 12) * 12;
+            const candidates = [];
+            for (let oct = -1; oct <= 1; oct += 1) {
+                const octBase = octaveBase + oct * 12;
+                scale.forEach((interval) => {
+                    candidates.push(octBase + ((rootPc + interval) % 12));
+                });
+            }
+            let best = candidates[0];
+            let bestDist = Math.abs(midiNote - best);
+            candidates.forEach((c) => {
+                const d = Math.abs(midiNote - c);
+                if (d < bestDist) {
+                    best = c;
+                    bestDist = d;
+                }
+            });
+            return Math.max(24, Math.min(108, best));
+        }
+
+        function genreAdjustedMidi(baseMidi) {
+            const profile = getGenreProfile();
+            const shifted = Math.round((baseMidi || 60) + (profile.transpose || 0));
+            return quantizeMidiToScale(shifted, profile.root || 0, profile.scale || [0, 2, 3, 5, 7, 8, 10]);
+        }
+
+
+        function buildHardwareBoundFrame(d) {
+            const cpuN = clamp01((d.cpu || 0) / 100);
+            const ramN = clamp01((d.ram || 0) / 100);
+            const gpuN = clamp01((d.gpu || 0) / 100);
+            const ioN = clamp01(Math.max((d.net_pps || 0) / 50000, (d.disk_iops || 0) / 5000, (d.iowait_pct || 0) / 100));
+            const thermN = clamp01(Math.max((d.cpu_temp_c || 0) / 100, (d.gpu_temp_c || 0) / 100, (d.gpu_power_w || 0) / 350));
+            const pressureN = clamp01((cpuN * 0.42) + (gpuN * 0.24) + (ioN * 0.22) + (thermN * 0.12));
+            const escalationEnergy = getEscalationEnergy();
+            const longMotion = getLongFormMotion(52, 0);
+            const harmonicMotion = getLongFormMotion(71, 17);
+
+            const leadMidi = genreAdjustedMidi(48 + cpuN * 15 + ramN * 4 + ioN * 3 + ((longMotion - 0.5) * 4) - thermN * 2);
+            const responseMidi = genreAdjustedMidi(leadMidi + (ramN > 0.65 ? 3 : 4) - 12 + (harmonicMotion > 0.66 ? 2 : 0));
+            const bassMidi = genreAdjustedMidi(34 + ioN * 12 + (longMotion > 0.62 ? 2 : 0));
+            const accentMidi = genreAdjustedMidi(leadMidi + (thermN > 0.72 ? 1 : 7) + (harmonicMotion > 0.74 ? 2 : 0));
+            const leadOctaveMidi = genreAdjustedMidi(leadMidi + 12);
+            const responseHarmonyMidi = genreAdjustedMidi(responseMidi + (harmonicMotion > 0.55 ? 5 : 7));
+
+            const padRoot = genreAdjustedMidi(leadMidi - 12 + (thermN > 0.6 ? 2 : 0));
+            const padMid = genreAdjustedMidi(padRoot + 4);
+            const padTop = genreAdjustedMidi(padRoot + 7);
+            const padColor = genreAdjustedMidi(padTop + (harmonicMotion > 0.5 ? 2 : 5));
+
+            const cadenceBase = pressureN > 0.7 ? 8 : 12;
+            const cadenceStep = Math.max(2, Math.round(cadenceBase / getCadenceScale()));
+            const isCadencePoint = packetCount % cadenceStep === 0;
+            const accentCadenceStep = Math.max(3, Math.round(cadenceStep * (1.5 - harmonicMotion * 0.18)));
+            const accentCadencePoint = packetCount % accentCadenceStep === 0;
+
+            return {
+                isCadencePoint,
+                accentCadencePoint,
+                leadMidi,
+                responseMidi,
+                accentMidi,
+                bassMidi,
+                leadFreq: Tone.Frequency(leadMidi, 'midi').toFrequency(),
+                leadOctaveFreq: Tone.Frequency(leadOctaveMidi, 'midi').toFrequency(),
+                responseFreq: Tone.Frequency(responseMidi, 'midi').toFrequency(),
+                responseHarmonyFreq: Tone.Frequency(responseHarmonyMidi, 'midi').toFrequency(),
+                accentFreq: Tone.Frequency(accentMidi, 'midi').toFrequency(),
+                bassFreq: Tone.Frequency(bassMidi, 'midi').toFrequency(),
+                padNotes: [padRoot, padMid, padTop].map((m) => Tone.Frequency(m, 'midi').toNote()),
+                padNotesDense: [padRoot, padMid, padTop, padColor].map((m) => Tone.Frequency(m, 'midi').toNote()),
+                escalationEnergy,
+                longMotion,
+                harmonicMotion,
+                hw: { cpu: cpuN, ram: ramN, gpu: gpuN, io: ioN, therm: thermN, pressure: pressureN }
+            };
+        }
+
+
+        function applyGenreToSynths() {
+            const profile = getGenreProfile();
+            const longMotion = getLongFormMotion(80, 11);
+            const harmonicMotion = getLongFormMotion(96, 37);
+            if (cpuSynth?.oscillator) cpuSynth.oscillator.type = profile.cpuOsc || 'square';
+            if (ramSynth?.oscillator) ramSynth.oscillator.type = profile.ramOsc || 'triangle';
+            if (netSynth?.noise) netSynth.noise.type = profile.netNoise || 'white';
+            if (gpuSynth) {
+                gpuSynth.modulationIndex = (profile.label === 'Industrial' ? 30 : 24) + (harmonicMotion * 10);
+                gpuSynth.harmonicity = 4.3 + (longMotion * 1.1);
+            }
+            if (tempSynth?.modulationIndex) tempSynth.modulationIndex.value = 8 + (longMotion * 9);
+            if (pressureSynth?.harmonicity) pressureSynth.harmonicity.value = 1.4 + (harmonicMotion * 0.7);
+        }
+
+        function refreshGenreUI() {
+            const sel = document.getElementById('genre-select');
+            if (sel && sel.value !== currentGenre) sel.value = currentGenre;
+            const densityEl = document.getElementById('genre-density');
+            if (densityEl) densityEl.value = String(Math.round(genreDensity * 100));
+            const densityVal = document.getElementById('genre-density-val');
+            if (densityVal) densityVal.innerText = `${genreDensity.toFixed(2)}x`;
+            const note = document.getElementById('profile-note') || document.getElementById('genre-note');
+            if (note) {
+                const genreDesc = getGenreProfile().desc;
+                const profile = EXPERIENCE_PROFILES[currentExperienceProfile];
+                const profileLabel = profile ? profile.label : 'Custom Profile';
+                note.innerText = `Experience ${profileLabel}: ${genreDesc} Escalation ${escalationRegulator.toFixed(2)}x. CPU drives lead, RAM response, IO bass pulse, THERM accent.`;
+            }
+        }
+
+        function setGenre(genreName) {
+            const normalized = GENRE_PROFILES[genreName] ? genreName : 'techno';
+            currentGenre = normalized;
+            localStorage.setItem(GENRE_STORAGE_KEY, normalized);
+            applyGenreToSynths();
+            refreshGenreUI();
+            log(`GENRE: ${getGenreProfile().label.toUpperCase()}`);
+        }
+
+        function setGenreDensity(rawVal) {
+            const value = Math.max(0.5, Math.min((parseFloat(rawVal || '100') / 100), 2));
+            genreDensity = value;
+            localStorage.setItem(GENRE_DENSITY_STORAGE_KEY, String(value));
+            refreshGenreUI();
+        }
+
+        function setEscalationRegulator(rawVal, persist = true) {
+            const value = Math.max(0.5, Math.min((parseFloat(rawVal || '100') / 100), 2.5));
+            escalationRegulator = value;
+            if (persist) localStorage.setItem(ESCALATION_REGULATOR_STORAGE_KEY, String(value));
+
+            const slider = document.getElementById('escalation-regulator');
+            const sliderVal = Math.round(value * 100);
+            if (slider && Number(slider.value) !== sliderVal) slider.value = String(sliderVal);
+
+            const valueEl = document.getElementById('escalation-regulator-val');
+            if (valueEl) valueEl.innerText = `${value.toFixed(2)}x`;
+
+            sendControlCommand({ escalation_regulator: value });
+
+            refreshGenreUI();
+        }
+
+        function refreshExperienceUI() {
+            const sel = document.getElementById('experience-select');
+            if (sel && sel.value !== currentExperienceProfile) sel.value = currentExperienceProfile;
+        }
+
+        function applyExperienceProfile(profileName, options = {}) {
+            const persist = options.persist !== false;
+            const logChange = options.logChange !== false;
+            const normalized = EXPERIENCE_PROFILES[profileName] ? profileName : 'night-patrol-techno';
+            const profile = EXPERIENCE_PROFILES[normalized];
+            currentExperienceProfile = normalized;
+
+            if (profile.scene) applyScenePreset(profile.scene);
+            if (profile.theme) applyTheme(profile.theme);
+            if (profile.genre) setGenre(profile.genre);
+            if (typeof profile.genreDensity === 'number') setGenreDensity(profile.genreDensity * 100);
+            if (typeof profile.escalationRegulator === 'number') {
+                setEscalationRegulator(profile.escalationRegulator * 100, persist);
+            }
+
+            if (persist) localStorage.setItem(EXPERIENCE_PROFILE_STORAGE_KEY, normalized);
+            refreshExperienceUI();
+            updatePreflightPresentation();
+
+            if (logChange) {
+                log(`PROFILE: ${profile.label.toUpperCase()} | ESC ${escalationRegulator.toFixed(2)}x`);
+            }
+        }
+
+        function initExperiencePanel() {
+            const storedProfile = localStorage.getItem(EXPERIENCE_PROFILE_STORAGE_KEY) || 'night-patrol-techno';
+            const normalized = EXPERIENCE_PROFILES[storedProfile] ? storedProfile : 'night-patrol-techno';
+            applyExperienceProfile(normalized, { persist: false, logChange: false });
+
+            const storedEsc = parseFloat(localStorage.getItem(ESCALATION_REGULATOR_STORAGE_KEY) || '');
+            if (Number.isFinite(storedEsc)) {
+                setEscalationRegulator(storedEsc * 100, false);
+            }
+
+            localStorage.setItem(EXPERIENCE_PROFILE_STORAGE_KEY, normalized);
+            refreshExperienceUI();
+            log(`PROFILE: ${EXPERIENCE_PROFILES[normalized].label.toUpperCase()}`);
+        }
+
+        function initGenrePanel() {
+            const storedGenre = localStorage.getItem(GENRE_STORAGE_KEY) || 'techno';
+            const storedDensity = parseFloat(localStorage.getItem(GENRE_DENSITY_STORAGE_KEY) || '1');
+            genreDensity = Number.isFinite(storedDensity) ? Math.max(0.5, Math.min(storedDensity, 2)) : 1;
+            setGenre(storedGenre);
+        }
+
+        window.setGenre = setGenre;
+        window.setGenreDensity = setGenreDensity;
+        window.setEscalationRegulator = setEscalationRegulator;
+        window.setVolumeTrim = setVolumeTrim;
+        window.setOutputTrim = setVolumeTrim;
+        window.setLineTrim = setLineTrim;
+        window.applyLineTrimPreset = applyLineTrimPreset;
+        window.applyExperienceProfile = applyExperienceProfile;
+
+        function cssVar(name) {
+            return getComputedStyle(document.body).getPropertyValue(name).trim();
+        }
+
+        function refreshThemePaletteCache() {
+            themePalette.cpu = cssVar('--cpu') || '#ff7272';
+            themePalette.ram = cssVar('--ram') || '#62f7b3';
+            themePalette.gpu = cssVar('--gpu') || '#ffb45e';
+            themePalette.line = cssVar('--line') || '#26344b';
+        }
+
+        function applyTheme(themeName) {
+            const normalized = THEMES.includes(themeName) ? themeName : 'default-neon';
+            if (normalized === 'default-neon') {
+                document.body.removeAttribute('data-theme');
+            } else {
+                document.body.setAttribute('data-theme', normalized);
+            }
+            localStorage.setItem(THEME_STORAGE_KEY, normalized);
+
+            const sel = document.getElementById('theme-select');
+            if (sel && sel.value !== normalized) sel.value = normalized;
+            refreshThemePaletteCache();
+            renderCardLoadPanels();
+            log(`THEME: ${normalized.toUpperCase().replace('-', ' ')}`);
+        }
+
+        function initThemeSelector() {
+            let preferred = localStorage.getItem(THEME_STORAGE_KEY) || 'default-neon';
+            if (!THEMES.includes(preferred)) preferred = 'default-neon';
+            applyTheme(preferred);
+        }
+
+        window.setTheme = applyTheme;
+
+        function syncRoutingMatrixUI() {
+            document.querySelectorAll('.route-select').forEach((sel) => {
+                const lane = sel.getAttribute('data-lane');
+                if (!lane) return;
+                if (laneRouting[lane]) sel.value = laneRouting[lane];
+            });
+
+            document.querySelectorAll('.sens-slider').forEach((slider) => {
+                const lane = slider.getAttribute('data-lane');
+                if (!lane) return;
+                const val = Math.max(0, Math.min(laneSensitivity[lane] || 1, 2));
+                slider.value = String(Math.round(val * 100));
+                const valEl = document.getElementById(`sens-${lane}`);
+                if (valEl) valEl.innerText = val.toFixed(1);
+            });
+        }
+
+        function setMainGains(cpu, ram, gpu, options = {}) {
+            const useLegacyInput = options.useLegacyInput === true;
+            if (useLegacyInput) {
+                leadSceneGains.cpu = convertLegacyLeadGainInputToBaseDb(cpu, LEGACY_LEAD_SCENE_GAIN_DEFAULTS.cpu);
+                leadSceneGains.ram = convertLegacyLeadGainInputToBaseDb(ram, LEGACY_LEAD_SCENE_GAIN_DEFAULTS.ram);
+                leadSceneGains.gpu = convertLegacyLeadGainInputToBaseDb(gpu, LEGACY_LEAD_SCENE_GAIN_DEFAULTS.gpu);
+            } else {
+                leadSceneGains.cpu = sanitizeLeadBaseDb(cpu, LEAD_SCENE_GAIN_DEFAULTS.cpu);
+                leadSceneGains.ram = sanitizeLeadBaseDb(ram, LEAD_SCENE_GAIN_DEFAULTS.ram);
+                leadSceneGains.gpu = sanitizeLeadBaseDb(gpu, LEAD_SCENE_GAIN_DEFAULTS.gpu);
+            }
+            updateMixer();
+        }
+
+        function applyScenePreset(sceneName) {
+            const key = (sceneName === 'custom-saved' || (sceneName && SCENES[sceneName])) ? sceneName : 'manual';
+            const sel = document.getElementById('scene-select');
+            if (sel && sel.value !== key) sel.value = key;
+
+            if (key === 'manual') {
+                localStorage.setItem(SCENE_STORAGE_KEY, 'manual');
+                log('SCENE: MANUAL');
+                return;
+            }
+
+            if (key === 'custom-saved') {
+                const raw = localStorage.getItem(CUSTOM_SCENE_STORAGE_KEY);
+                if (!raw) {
+                    log('SCENE: NO CUSTOM SCENE SAVED YET');
+                    if (sel) sel.value = 'manual';
+                    localStorage.setItem(SCENE_STORAGE_KEY, 'manual');
+                    return;
+                }
+
+                try {
+                    const custom = JSON.parse(raw);
+                    const storedGainsVersion = Number(custom.gainsVersion || 0);
+                    const isLegacyGainFormat = storedGainsVersion < LEAD_SCENE_GAINS_VERSION;
+                    applyTheme(custom.theme || 'default-neon');
+                    if (custom.genre) setGenre(custom.genre);
+                    if (typeof custom.genreDensity === 'number') setGenreDensity(custom.genreDensity * 100);
+
+                    if (isLegacyGainFormat) {
+                        setMainGains(
+                            custom.gains?.cpu ?? LEGACY_LEAD_SCENE_GAIN_DEFAULTS.cpu,
+                            custom.gains?.ram ?? LEGACY_LEAD_SCENE_GAIN_DEFAULTS.ram,
+                            custom.gains?.gpu ?? LEGACY_LEAD_SCENE_GAIN_DEFAULTS.gpu,
+                            { useLegacyInput: true }
+                        );
+                        custom.gains = { ...leadSceneGains };
+                        custom.gainsVersion = LEAD_SCENE_GAINS_VERSION;
+                        localStorage.setItem(CUSTOM_SCENE_STORAGE_KEY, JSON.stringify(custom));
+                    } else {
+                        setMainGains(
+                            custom.gains?.cpu ?? LEAD_SCENE_GAIN_DEFAULTS.cpu,
+                            custom.gains?.ram ?? LEAD_SCENE_GAIN_DEFAULTS.ram,
+                            custom.gains?.gpu ?? LEAD_SCENE_GAIN_DEFAULTS.gpu
+                        );
+                    }
+
+                    const routing = custom.routing || {};
+                    Object.keys(laneRouting).forEach((lane) => {
+                        if (routing[lane]) laneRouting[lane] = routing[lane];
+                    });
+
+                    const sensitivity = custom.sensitivity || {};
+                    Object.keys(laneSensitivity).forEach((lane) => {
+                        if (typeof sensitivity[lane] === 'number') {
+                            laneSensitivity[lane] = Math.max(0, Math.min(sensitivity[lane], 2));
+                        }
+                    });
+
+                    syncRoutingMatrixUI();
+                    localStorage.setItem(SCENE_STORAGE_KEY, 'custom-saved');
+                    log(`SCENE: CUSTOM SAVED${isLegacyGainFormat ? ' (GAIN MIGRATED)' : ''}`);
+                } catch (e) {
+                    log(`SCENE: CUSTOM LOAD FAILED (${e.message})`);
+                    if (sel) sel.value = 'manual';
+                    localStorage.setItem(SCENE_STORAGE_KEY, 'manual');
+                }
+                return;
+            }
+
+            const scene = SCENES[key];
+            applyTheme(scene.theme);
+            setMainGains(scene.gains.cpu, scene.gains.ram, scene.gains.gpu);
+            Object.keys(scene.routing).forEach((lane) => { laneRouting[lane] = scene.routing[lane]; });
+            Object.keys(scene.sensitivity).forEach((lane) => {
+                laneSensitivity[lane] = Math.max(0, Math.min(scene.sensitivity[lane], 2));
+            });
+            syncRoutingMatrixUI();
+            localStorage.setItem(SCENE_STORAGE_KEY, key);
+            log(`SCENE: ${key.toUpperCase().replace('-', ' ')}`);
+        }
+
+        function saveCustomScene() {
+            const customScene = {
+                theme: localStorage.getItem(THEME_STORAGE_KEY) || 'default-neon',
+                genre: currentGenre,
+                genreDensity,
+                gains: {
+                    cpu: leadSceneGains.cpu,
+                    ram: leadSceneGains.ram,
+                    gpu: leadSceneGains.gpu,
+                },
+                gainsVersion: LEAD_SCENE_GAINS_VERSION,
+                routing: { ...laneRouting },
+                sensitivity: { ...laneSensitivity },
+                savedAt: new Date().toISOString(),
+            };
+
+            localStorage.setItem(CUSTOM_SCENE_STORAGE_KEY, JSON.stringify(customScene));
+            localStorage.setItem(SCENE_STORAGE_KEY, 'custom-saved');
+            const sel = document.getElementById('scene-select');
+            if (sel) sel.value = 'custom-saved';
+            log('SCENE: CUSTOM SAVED FROM CURRENT STATE');
+        }
+
+        function initSceneSelector() {
+            const preferred = localStorage.getItem(SCENE_STORAGE_KEY) || 'manual';
+            applyScenePreset(preferred);
+        }
+
+        window.applyScenePreset = applyScenePreset;
+        window.saveCustomScene = saveCustomScene;
+
+        function syncLocalAudioToggleUI() {
+            const btn = document.getElementById('audio-toggle-btn');
+            if (!btn) return;
+            btn.innerText = `Browser Audio: ${localAudioEnabled ? 'ON' : 'OFF'}`;
+            btn.style.background = localAudioEnabled ? '#0f766e' : '#475569';
+        }
+
+        async function toggleLocalAudio() {
+            localAudioEnabled = !localAudioEnabled;
+            localStorage.setItem(LOCAL_AUDIO_STORAGE_KEY, localAudioEnabled ? '1' : '0');
+            syncLocalAudioToggleUI();
+
+            if (localAudioEnabled) {
+                if (!running) {
+                    await boot({ countdownSeconds: 0, minDelayMs: 250, hideOverlayOnSuccess: false });
+                } else if (window.Tone && Tone.context && Tone.context.state !== 'running') {
+                    await Tone.context.resume();
+                }
+                log('LOCAL AUDIO: ENABLED (browser synthesis active)');
+            } else {
+                log('LOCAL AUDIO: DISABLED (monitor mode, external synth only)');
+            }
+
+            updateAudioStatus();
+        }
+
+        function updateAudioStatus() {
+            const el = document.getElementById('audio-status');
+            if (!el) return;
+            const trimLabel = `VOL TRIM ${volumeTrimDb.toFixed(1)}dB`;
+            if (window.Tone && Tone.context) {
+                const state = Tone.context.state;
+                const mode = localAudioEnabled ? 'BROWSER ON' : 'BROWSER OFF';
+                el.innerText = `Audio: ${state.toUpperCase()} | ${mode} | ${trimLabel}`;
+                el.style.color = localAudioEnabled
+                    ? (state === 'running' ? '#10b981' : '#f59e0b')
+                    : '#94a3b8';
+            } else {
+                el.innerText = `Audio: IDLE | ${localAudioEnabled ? 'BROWSER ON' : 'BROWSER OFF'} | ${trimLabel}`;
+                el.style.color = localAudioEnabled ? '#f59e0b' : '#94a3b8';
+            }
+        }
+
+        function updateSourceBadge(modeRaw) {
+            const badge = document.getElementById('source-badge');
+            if (!badge) return;
+
+            const mode = String(modeRaw || 'local').toLowerCase();
+            badge.classList.remove('local', 'external', 'fallback', 'offline');
+
+            if (mode === 'external') {
+                badge.classList.add('external');
+                badge.innerText = 'SRC: EXTERNAL';
+                return;
+            }
+
+            if (mode === 'local-fallback') {
+                badge.classList.add('fallback');
+                badge.innerText = 'SRC: FALLBACK';
+                return;
+            }
+
+            if (mode === 'offline') {
+                badge.classList.add('offline');
+                badge.innerText = 'SRC: OFFLINE';
+                return;
+            }
+
+            badge.classList.add('local');
+            badge.innerText = 'SRC: LOCAL';
+        }
+
+        function getToneDestination() {
+            if (!window.Tone) return null;
+            if (Tone.destination) return Tone.destination;
+            if (Tone.Destination) return Tone.Destination;
+            if (typeof Tone.getDestination === 'function') return Tone.getDestination();
+            return null;
+        }
+        setInterval(updateAudioStatus, 1000);
+
+        function renderMeter() {
+            if (!meter) return;
+            const canvas = document.getElementById('meter-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const level = meter.getValue();
+            
+            const val = Array.isArray(level) ? level[0] : level;
+            const weight = Math.max(0, (val + 60) / 60) * canvas.width;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#10b981');
+            gradient.addColorStop(0.7, '#f59e0b');
+            gradient.addColorStop(1, '#f43f5e');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, weight, canvas.height);
+            
+            requestAnimationFrame(renderMeter);
+        }
+
+        function pushUsageMonitorSample(metric, value) {
+            const history = usageMonitorHistory[metric];
+            if (!history) return;
+            const sample = Math.max(0, Math.min(100, value || 0));
+            history.push(sample);
+            if (history.length > usageMonitorMaxPoints) history.shift();
+        }
+
+        function drawUsageMonitor(canvasId, history, color) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const dpr = window.devicePixelRatio || 1;
+            const targetW = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+            const targetH = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+            if (canvas.width !== targetW || canvas.height !== targetH) {
+                canvas.width = targetW;
+                canvas.height = targetH;
+            }
+
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            const midY = h * 0.5;
+            ctx.strokeStyle = 'rgba(108, 139, 176, 0.22)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, midY);
+            ctx.lineTo(w, midY);
+            ctx.stroke();
+
+            if (history.length < 2) return;
+
+            let minV = 100;
+            let maxV = 0;
+            for (let i = 0; i < history.length; i += 1) {
+                const v = history[i];
+                if (v < minV) minV = v;
+                if (v > maxV) maxV = v;
+            }
+
+            const dynamicSpan = Math.max(8, maxV - minV);
+            const center = (maxV + minV) * 0.5;
+            const lo = Math.max(0, center - dynamicSpan * 0.75);
+            const hi = Math.min(100, center + dynamicSpan * 0.75);
+            const span = Math.max(6, hi - lo);
+            const dx = w / Math.max(1, usageMonitorMaxPoints - 1);
+
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 9 * dpr;
+            ctx.shadowColor = color;
+            ctx.beginPath();
+            for (let i = 0; i < history.length; i += 1) {
+                const x = i * dx;
+                const n = (history[i] - lo) / span;
+                const y = h - (Math.max(0, Math.min(1, n)) * (h * 0.84) + h * 0.08);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = Math.max(1.3, 1.8 * dpr);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function renderCardLoadPanels() {
+            drawUsageMonitor('chart-cpu', usageMonitorHistory.cpu, themePalette.cpu);
+            drawUsageMonitor('chart-ram', usageMonitorHistory.ram, themePalette.ram);
+            drawUsageMonitor('chart-gpu', usageMonitorHistory.gpu, themePalette.gpu);
+        }
+
+        function initUiRefs() {
+            uiRefs.valCpu = document.getElementById('val-cpu');
+            uiRefs.valRam = document.getElementById('val-ram');
+            uiRefs.valGpu = document.getElementById('val-gpu');
+            uiRefs.debugCpu = document.getElementById('debug-cpu');
+            uiRefs.debugRam = document.getElementById('debug-ram');
+            uiRefs.debugGpu = document.getElementById('debug-gpu');
+        }
+
+        function renderTelemetryFrame(d, bus) {
+            updateSourceBadge(d.metrics_source || 'local');
+
+            if (uiRefs.valCpu) uiRefs.valCpu.innerText = `${d.cpu.toFixed(1)}%`;
+            if (uiRefs.valRam) uiRefs.valRam.innerText = `${d.ram.toFixed(1)}%`;
+            if (uiRefs.valGpu) uiRefs.valGpu.innerText = `${d.gpu.toFixed(1)}%`;
+
+            try {
+                const ioDrive = Math.max((d.net_pps || 0) / 50000, (d.disk_iops || 0) / 5000, (d.iowait_pct || 0) / 100);
+                const thermDrive = Math.max((d.cpu_temp_c || 0) / 100, (d.gpu_temp_c || 0) / 100, (d.gpu_power_w || 0) / 350);
+                if (uiRefs.debugCpu) uiRefs.debugCpu.innerText = `CPU->Pitch ${(d.cpu || 0).toFixed(1)}%`;
+                if (uiRefs.debugRam) uiRefs.debugRam.innerText = `RAM->Response ${(d.ram || 0).toFixed(1)}% | IO ${(ioDrive * 100).toFixed(0)}%`;
+                if (uiRefs.debugGpu) uiRefs.debugGpu.innerText = `GPU ${(d.gpu || 0).toFixed(1)}% | THERM ${(thermDrive * 100).toFixed(0)}%`;
+            } catch (deberr) {
+                console.warn('Debug UI fail', deberr);
+            }
+
+            pushUsageMonitorSample('cpu', d.cpu || 0);
+            pushUsageMonitorSample('ram', d.ram || 0);
+            pushUsageMonitorSample('gpu', d.gpu || 0);
+            renderCardLoadPanels();
+            updateProcMeters(d);
+            updateBusMeters(bus);
+        }
+
+        function scheduleUiFlush() {
+            if (uiFlushScheduled) return;
+            uiFlushScheduled = true;
+            requestAnimationFrame(() => {
+                uiFlushScheduled = false;
+                const d = pendingUiFrame;
+                const bus = pendingUiBus;
+                pendingUiFrame = null;
+                pendingUiBus = null;
+                if (!d) return;
+                renderTelemetryFrame(d, bus || computeBusEnergies(d));
+            });
+        }
+
+        function updateProcMeters(d) {
+            const set = (id, value, labelId, labelText) => {
+                const fill = document.getElementById(id);
+                const label = document.getElementById(labelId);
+                if (fill) fill.style.width = `${Math.max(0, Math.min(100, value))}%`;
+                if (label) label.innerText = labelText;
+            };
+
+            set('proc-cpu', d.cpu || 0, 'proc-cpu-val', `${(d.cpu || 0).toFixed(0)}%`);
+            set('proc-load1', d.load1_pct || 0, 'proc-load1-val', `${(d.load1_pct || 0).toFixed(0)}%`);
+            set('proc-cpufreq', Math.min(((d.cpu_freq_mhz || 0) / 6000) * 100, 100), 'proc-cpufreq-val', `${(d.cpu_freq_mhz || 0).toFixed(0)}M`);
+            set('proc-cputemp', Math.min((d.cpu_temp_c || 0), 100), 'proc-cputemp-val', `${(d.cpu_temp_c || 0).toFixed(0)}C`);
+            set('proc-ram', d.ram || 0, 'proc-ram-val', `${(d.ram || 0).toFixed(0)}%`);
+            set('proc-swap', d.swap_pct || 0, 'proc-swap-val', `${(d.swap_pct || 0).toFixed(0)}%`);
+            set('proc-gpu', d.gpu || 0, 'proc-gpu-val', `${(d.gpu || 0).toFixed(0)}%`);
+            set('proc-gputemp', Math.min((d.gpu_temp_c || 0), 100), 'proc-gputemp-val', `${(d.gpu_temp_c || 0).toFixed(0)}C`);
+            set('proc-gpupwr', Math.min(((d.gpu_power_w || 0) / 350) * 100, 100), 'proc-gpupwr-val', `${(d.gpu_power_w || 0).toFixed(0)}W`);
+            set('proc-vram', d.gpu_mem_pct || 0, 'proc-vram-val', `${(d.gpu_mem_pct || 0).toFixed(0)}%`);
+            set('proc-net', Math.min(((d.net_bps || 0) / 10000000) * 100, 100), 'proc-net-val', `${((d.net_bps || 0) / 1024).toFixed(0)}k`);
+            set('proc-netpps', Math.min(((d.net_pps || 0) / 50000) * 100, 100), 'proc-netpps-val', `${(d.net_pps || 0).toFixed(0)}`);
+            set('proc-disk', Math.min(((d.disk_bps || 0) / 50000000) * 100, 100), 'proc-disk-val', `${((d.disk_bps || 0) / 1048576).toFixed(0)}m`);
+            set('proc-iops', Math.min(((d.disk_iops || 0) / 5000) * 100, 100), 'proc-iops-val', `${(d.disk_iops || 0).toFixed(0)}`);
+            set('proc-iowait', d.iowait_pct || 0, 'proc-iowait-val', `${(d.iowait_pct || 0).toFixed(0)}%`);
+            set('proc-ctx', Math.min(((d.ctx_switches_ps || 0) / 200000) * 100, 100), 'proc-ctx-val', `${(d.ctx_switches_ps || 0).toFixed(0)}`);
+            set('proc-intr', Math.min(((d.interrupts_ps || 0) / 50000) * 100, 100), 'proc-intr-val', `${(d.interrupts_ps || 0).toFixed(0)}`);
+            set('proc-procs', Math.min(((d.proc_count || 0) / 1024) * 100, 100), 'proc-procs-val', `${(d.proc_count || 0).toFixed(0)}`);
+        }
+
+        function laneNorm(d, lane) {
+            if (lane === 'cpu') return Math.max(0, Math.min((d.cpu || 0) / 100, 1));
+            if (lane === 'ram') return Math.max(0, Math.min((d.ram || 0) / 100, 1));
+            if (lane === 'gpu') return Math.max(0, Math.min((d.gpu || 0) / 100, 1));
+            if (lane === 'net_pps') return Math.max(0, Math.min((d.net_pps || 0) / 50000, 1));
+            if (lane === 'disk_iops') return Math.max(0, Math.min((d.disk_iops || 0) / 5000, 1));
+            if (lane === 'cpu_temp_c') return Math.max(0, Math.min((d.cpu_temp_c || 0) / 100, 1));
+            if (lane === 'gpu_temp_c') return Math.max(0, Math.min((d.gpu_temp_c || 0) / 100, 1));
+            if (lane === 'gpu_power_w') return Math.max(0, Math.min((d.gpu_power_w || 0) / 350, 1));
+            if (lane === 'swap_pct') return Math.max(0, Math.min((d.swap_pct || 0) / 100, 1));
+            if (lane === 'load1_pct') return Math.max(0, Math.min((d.load1_pct || 0) / 100, 1));
+            if (lane === 'iowait_pct') return Math.max(0, Math.min((d.iowait_pct || 0) / 100, 1));
+            if (lane === 'ctx_switches_ps') return Math.max(0, Math.min((d.ctx_switches_ps || 0) / 200000, 1));
+            if (lane === 'interrupts_ps') return Math.max(0, Math.min((d.interrupts_ps || 0) / 50000, 1));
+            if (lane === 'proc_count') return Math.max(0, Math.min((d.proc_count || 0) / 1024, 1));
+            return 0;
+        }
+
+        function computeBusEnergies(d) {
+            const buses = { rhythm: 0, bass: 0, pad: 0, fx: 0 };
+            const counts = { rhythm: 0, bass: 0, pad: 0, fx: 0 };
+            Object.keys(laneRouting).forEach((lane) => {
+                const bus = laneRouting[lane];
+                const v = laneNorm(d, lane) * (laneSensitivity[lane] || 1);
+                buses[bus] += v;
+                counts[bus] += 1;
+            });
+
+            Object.keys(buses).forEach((bus) => {
+                buses[bus] = counts[bus] > 0 ? buses[bus] / counts[bus] : 0;
+            });
+            return buses;
+        }
+
+        function updateBusMeters(bus) {
+            const set = (id, valId, value) => {
+                const el = document.getElementById(id);
+                const lbl = document.getElementById(valId);
+                if (el) el.style.width = `${Math.max(0, Math.min(value * 100, 100))}%`;
+                if (lbl) lbl.innerText = `${Math.round(value * 100)}%`;
+            };
+            set('bus-rhythm', 'bus-rhythm-val', bus.rhythm || 0);
+            set('bus-bass', 'bus-bass-val', bus.bass || 0);
+            set('bus-pad', 'bus-pad-val', bus.pad || 0);
+            set('bus-fx', 'bus-fx-val', bus.fx || 0);
+        }
+
+        function initRoutingMatrix() {
+            const selects = document.querySelectorAll('.route-select');
+            selects.forEach((sel) => {
+                const lane = sel.getAttribute('data-lane');
+                if (!lane) return;
+                sel.value = laneRouting[lane] || 'rhythm';
+                sel.addEventListener('change', () => {
+                    laneRouting[lane] = sel.value;
+                    log(`ROUTING: ${lane.toUpperCase()} -> ${sel.value.toUpperCase()}`);
+                });
+            });
+
+            const sliders = document.querySelectorAll('.sens-slider');
+            sliders.forEach((slider) => {
+                const lane = slider.getAttribute('data-lane');
+                if (!lane) return;
+                const valEl = document.getElementById(`sens-${lane}`);
+                const initial = (laneSensitivity[lane] || 1);
+                slider.value = String(Math.round(initial * 100));
+                if (valEl) valEl.innerText = initial.toFixed(1);
+                slider.addEventListener('input', () => {
+                    const value = Math.max(0, Math.min(parseFloat(slider.value || '100') / 100, 2));
+                    laneSensitivity[lane] = value;
+                    if (valEl) valEl.innerText = value.toFixed(1);
+                });
+            });
+        }
+
+        function orchestrateExtras(d, frame, anySolo, bus, mixDensity) {
+            if (!running) return;
+
+            const netGate = musicalState.tension > 0.6 ? genreStep(6) : genreStep(8);
+            if (isAudioLineActive('net') && (d.net_pps || 0) > (9000 + (1 - (bus.rhythm || 0)) * 16000) && packetCount % netGate === (2 % netGate) && (!anySolo || soloModes.cpu)) {
+                cpuSynth.triggerAttackRelease(frame.accentFreq, '16n', undefined, computeTriggerLevel(0.18 + musicalState.tension * 0.16, mixDensity, bus.rhythm || 0));
+            }
+
+            const diskGate = genreStep(8);
+            if (isAudioLineActive('disk') && (d.disk_iops || 0) > (650 + (1 - (bus.bass || 0)) * 1300) && packetCount % diskGate === (5 % diskGate) && (!anySolo || soloModes.ram)) {
+                diskSynth.triggerAttackRelease(frame.bassFreq, '16n', undefined, computeTriggerLevel(0.19 + (bus.bass || 0) * 0.14, mixDensity, bus.bass || 0));
+            }
+
+            if (isAudioLineActive('temp') && (d.iowait_pct || 0) > (8 + (1 - (bus.fx || 0)) * 30) && packetCount % genreStep(12) === 0 && (!anySolo || soloModes.gpu)) {
+                gpuSynth.frequency.value = mapV(d.iowait_pct || 0, 0, 100, 300, 2500);
+                gpuSynth.triggerAttackRelease('32n', undefined, computeTriggerLevel(0.15 + (bus.fx || 0) * 0.12, mixDensity, bus.fx || 0));
+            }
+        }
+
+        function triggerLaneInstruments(d, frame, anySolo, bus, mixDensity) {
+            if (!running) return;
+
+            const netN = laneNorm(d, 'net_pps') * (laneSensitivity.net_pps || 1);
+            const diskN = laneNorm(d, 'disk_iops') * (laneSensitivity.disk_iops || 1);
+            const cpuTempN = laneNorm(d, 'cpu_temp_c') * (laneSensitivity.cpu_temp_c || 1);
+            const swapN = laneNorm(d, 'swap_pct') * (laneSensitivity.swap_pct || 1);
+            const powerN = laneNorm(d, 'gpu_power_w') * (laneSensitivity.gpu_power_w || 1);
+            const pressureN = Math.max(
+                laneNorm(d, 'ctx_switches_ps') * (laneSensitivity.ctx_switches_ps || 1),
+                laneNorm(d, 'interrupts_ps') * (laneSensitivity.interrupts_ps || 1)
+            );
+            const padN = Math.max(
+                laneNorm(d, 'load1_pct') * (laneSensitivity.load1_pct || 1),
+                laneNorm(d, 'proc_count') * (laneSensitivity.proc_count || 1)
+            );
+
+            if (isAudioLineActive('net') && netN > 0.03 && packetCount % genreStep(3) === (1 % genreStep(3)) && (!anySolo || soloModes.cpu)) {
+                netSynth.noise.type = (bus.rhythm || 0) > 0.65 ? 'pink' : 'white';
+                netSynth.triggerAttackRelease('32n', undefined, computeTriggerLevel(0.24 + Math.min(netN, 1) * 0.14, mixDensity, netN));
+                laneHitCounters.net += 1;
+            }
+
+            if (isAudioLineActive('disk') && diskN > 0.03 && packetCount % genreStep(4) === (2 % genreStep(4)) && (!anySolo || soloModes.ram)) {
+                const diskFreq = mapV(d.disk_iops || 0, 0, 5000, 45, 95);
+                diskSynth.triggerAttackRelease(diskFreq, '16n', undefined, computeTriggerLevel(0.26 + Math.min(diskN, 1) * 0.14, mixDensity, diskN));
+                laneHitCounters.disk += 1;
+            }
+
+            if (isAudioLineActive('temp') && cpuTempN > 0.2 && packetCount % genreStep(5) === 0 && (!anySolo || soloModes.gpu)) {
+                const tFreq = mapV(d.cpu_temp_c || 0, 30, 100, 220, 900);
+                tempSynth.triggerAttackRelease(tFreq, '8n', undefined, computeTriggerLevel(0.18 + Math.min(cpuTempN, 1) * 0.14, mixDensity, cpuTempN));
+                laneHitCounters.temp += 1;
+            }
+
+            if (isAudioLineActive('swap') && swapN > 0.01 && packetCount % genreStep(6) === (3 % genreStep(6))) {
+                const sFreq = Math.max(55, frame.bassFreq * 0.5);
+                swapSynth.triggerAttackRelease(sFreq, '8n', undefined, computeTriggerLevel(0.16 + Math.min(swapN, 1) * 0.12, mixDensity, swapN));
+                laneHitCounters.swap += 1;
+            }
+
+            if (isAudioLineActive('power') && powerN > 0.08 && packetCount % genreStep(4) === (1 % genreStep(4))) {
+                const pFreq = mapV(d.gpu_power_w || 0, 0, 350, 250, 1800);
+                powerSynth.frequency.value = pFreq;
+                powerSynth.triggerAttackRelease('16n', undefined, computeTriggerLevel(0.18 + Math.min(powerN, 1) * 0.12, mixDensity, powerN));
+                laneHitCounters.power += 1;
+            }
+
+            if (isAudioLineActive('pressure') && pressureN > 0.05 && packetCount % genreStep(3) === 0) {
+                pressureSynth.triggerAttackRelease(frame.accentFreq, '16n', undefined, computeTriggerLevel(0.18 + Math.min(pressureN, 1) * 0.14, mixDensity, pressureN));
+                laneHitCounters.pressure += 1;
+            }
+
+            if (isAudioLineActive('pad') && padN > 0.1 && packetCount % genreStep(10) === 0) {
+                padSynth.triggerAttackRelease(frame.padNotesDense, '2n', undefined, computeTriggerLevel(0.14 + (bus.pad || 0) * 0.12, mixDensity, padN));
+                laneHitCounters.pad += 1;
+            }
+
+            if (packetCount % 60 === 0) {
+                log(
+                    `LANE-HITS net:${laneHitCounters.net} disk:${laneHitCounters.disk} temp:${laneHitCounters.temp} swap:${laneHitCounters.swap} power:${laneHitCounters.power} pressure:${laneHitCounters.pressure} pad:${laneHitCounters.pad}`
+                );
+            }
+        }
+
+        function initCharts() {
+            refreshThemePaletteCache();
+            renderCardLoadPanels();
+        }
+
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        function withTimeout(promise, timeoutMs, timeoutMessage) {
+            return new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                    reject(new Error(timeoutMessage || 'Timed out'));
+                }, timeoutMs);
+
+                promise
+                    .then((value) => {
+                        clearTimeout(timer);
+                        resolve(value);
+                    })
+                    .catch((err) => {
+                        clearTimeout(timer);
+                        reject(err);
+                    });
+            });
+        }
+
+        function getConnectionConfig() {
+            const manualIpInput = document.getElementById('manual-ip');
+            const manualIp = manualIpInput ? manualIpInput.value.trim() : '';
+            const host = manualIp || location.hostname || '192.168.31.50';
+            const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
+            const httpProtocol = location.protocol === 'https:' ? 'https' : 'http';
+            const preferredPort = location.port || '8001';
+            const ports = preferredPort === '9000' ? ['9000', '8001'] : ['8001', '9000'];
+            return { host, wsProtocol, httpProtocol, ports };
+        }
+
+        function setBootError(message = '') {
+            const bootError = document.getElementById('boot-error');
+            if (!bootError) return;
+            if (message) {
+                bootError.innerText = message;
+                bootError.style.display = 'block';
+            } else {
+                bootError.innerText = '';
+                bootError.style.display = 'none';
+            }
+        }
+
+        function setOverlayStatus(message, tone = 'pending') {
+            const status = document.getElementById('overlay-status');
+            if (!status) return;
+            status.innerText = message;
+            status.classList.remove('is-pending', 'is-ready', 'is-fail', 'is-success');
+            if (tone === 'ready') status.classList.add('is-ready');
+            else if (tone === 'success') status.classList.add('is-success');
+            else if (tone === 'fail') status.classList.add('is-fail');
+            else status.classList.add('is-pending');
+        }
+
+        function updatePreflightPresentation() {
+            const profileEl = document.getElementById('preflight-profile');
+            const endpointEl = document.getElementById('preflight-endpoint');
+            const readinessEl = document.getElementById('preflight-readiness');
+            const profileSelect = document.getElementById('experience-select');
+            const profileText = profileSelect?.selectedOptions?.[0]?.textContent?.trim() || 'Manual';
+
+            if (profileEl) profileEl.innerText = profileText.toUpperCase();
+            if (endpointEl) endpointEl.innerText = preflightState.endpointLabel.toUpperCase();
+            if (readinessEl) readinessEl.innerText = preflightState.ready ? 'READY' : 'BLOCKED';
+
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn && !bootInProgress && !running) {
+                startBtn.disabled = !preflightState.ready;
+                startBtn.innerText = preflightState.ready ? START_BUTTON_READY_LABEL : START_BUTTON_RETRY_LABEL;
+            }
+        }
+
+        async function runStartupPreflight(options = {}) {
+            const quiet = options.quiet === true;
+            const force = options.force === true;
+            if (preflightInProgress && !force) return preflightInProgress;
+
+            preflightInProgress = (async () => {
+                const config = getConnectionConfig();
+                const endpointFallbackLabel = `${config.host}:${config.ports.join('/')}`;
+                preflightState.endpointLabel = endpointFallbackLabel;
+                updatePreflightPresentation();
+
+                if (!quiet) {
+                    setOverlayStatus('Running pre-flight checks...', 'pending');
+                }
+
+                const checks = [];
+                const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+                checks.push({
+                    label: 'Web Audio API',
+                    ok: hasAudioContext,
+                    blocking: true,
+                    detail: hasAudioContext ? 'Browser audio API available' : 'Browser does not expose AudioContext'
+                });
+
+                const hasTone = !!window.Tone;
+                checks.push({
+                    label: 'Tone.js Runtime',
+                    ok: hasTone,
+                    blocking: true,
+                    detail: hasTone ? 'Tone.js loaded' : 'Tone.js script missing'
+                });
+
+                let endpointHealthy = socket && socket.readyState === WebSocket.OPEN;
+                let endpointLabel = endpointFallbackLabel;
+                let endpointDetail = endpointHealthy ? 'WebSocket already connected' : 'No active telemetry socket';
+
+                if (!endpointHealthy) {
+                    for (let i = 0; i < config.ports.length; i += 1) {
+                        const port = config.ports[i];
+                        const probes = [
+                            {
+                                path: '/health',
+                                timeoutMs: 1400,
+                                timeoutMessage: `Health probe timeout on ${config.host}:${port}`,
+                                successDetail: 'Health endpoint reachable'
+                            },
+                            {
+                                path: '/',
+                                timeoutMs: 1400,
+                                timeoutMessage: `HTTP probe timeout on ${config.host}:${port}`,
+                                successDetail: 'HTTP endpoint reachable'
+                            }
+                        ];
+
+                        for (let j = 0; j < probes.length; j += 1) {
+                            const probe = probes[j];
+                            const probeUrl = `${config.httpProtocol}://${config.host}:${port}${probe.path}`;
+                            try {
+                                const response = await withTimeout(
+                                    fetch(probeUrl, { method: 'GET', cache: 'no-store' }),
+                                    probe.timeoutMs,
+                                    probe.timeoutMessage
+                                );
+
+                                if (response.ok) {
+                                    endpointHealthy = true;
+                                    endpointLabel = `${config.host}:${port}`;
+                                    endpointDetail = probe.successDetail;
+                                    break;
+                                }
+
+                                endpointDetail = `${probe.path} returned ${response.status}`;
+                            } catch (_err) {
+                                endpointDetail = `${probe.path} unreachable`;
+                            }
+                        }
+
+                        if (endpointHealthy) {
+                            break;
+                        }
+                    }
+                }
+
+                checks.push({
+                    label: 'Telemetry Endpoint',
+                    ok: endpointHealthy,
+                    blocking: true,
+                    detail: endpointDetail
+                });
+
+                let storageOk = true;
+                try {
+                    localStorage.setItem('__hsp_preflight_probe', '1');
+                    localStorage.removeItem('__hsp_preflight_probe');
+                } catch (_err) {
+                    storageOk = false;
+                }
+
+                checks.push({
+                    label: 'Preference Storage',
+                    ok: storageOk,
+                    blocking: false,
+                    detail: storageOk ? 'Preferences persist between sessions' : 'Preferences reset after refresh'
+                });
+
+                const blockingFailure = checks.find((check) => check.blocking && !check.ok);
+                preflightState.ready = !blockingFailure;
+                preflightState.endpointLabel = endpointLabel;
+                preflightState.message = blockingFailure
+                    ? `${blockingFailure.label}: ${blockingFailure.detail}`
+                    : 'Pre-flight complete. Ready to launch.';
+
+                updatePreflightPresentation();
+                if (!quiet) {
+                    setOverlayStatus(preflightState.message, preflightState.ready ? 'ready' : 'fail');
+                }
+                return { ...preflightState };
+            })();
+
+            try {
+                return await preflightInProgress;
+            } finally {
+                preflightInProgress = null;
+            }
+        }
+
+        function clearCountdownTimer() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+
+            const cancelBtn = document.getElementById('cancel-countdown-btn');
+            if (cancelBtn) {
+                cancelBtn.hidden = true;
+                cancelBtn.onclick = null;
+                cancelBtn.innerText = 'Cancel';
+            }
+        }
+
+        function runUndoCountdown(seconds) {
+            if (!seconds || seconds <= 0) return Promise.resolve();
+
+            const cancelBtn = document.getElementById('cancel-countdown-btn');
+            if (!cancelBtn) return Promise.resolve();
+
+            cancelBtn.hidden = false;
+
+            return new Promise((resolve, reject) => {
+                let remaining = Math.max(1, Math.floor(seconds));
+
+                const tick = () => {
+                    if (remaining <= 0) {
+                        clearCountdownTimer();
+                        resolve();
+                        return;
+                    }
+
+                    cancelBtn.innerText = `Cancel (${remaining})`;
+                    setOverlayStatus(`Starting in ${remaining}s. Press cancel to abort.`, 'pending');
+                    remaining -= 1;
+                };
+
+                cancelBtn.onclick = () => {
+                    clearCountdownTimer();
+                    setOverlayStatus('Startup canceled. Nothing changed.', 'fail');
+                    reject(new Error('start_cancelled'));
+                };
+
+                tick();
+                countdownInterval = setInterval(tick, 1000);
+            });
+        }
+
+        async function startAudioEngine() {
+            if (!window.Tone) {
+                throw new Error('Tone.js runtime unavailable.');
+            }
+
+            await Tone.start();
+
+            // Absolute safety chain.
+            limiter = new Tone.Limiter(LIMITER_THRESHOLD_DB).toDestination();
+            compressor = new Tone.Compressor(COMPRESSOR_SETTINGS.threshold, COMPRESSOR_SETTINGS.ratio);
+            compressor.attack.value = COMPRESSOR_SETTINGS.attack;
+            compressor.release.value = COMPRESSOR_SETTINGS.release;
+            compressor.knee.value = COMPRESSOR_SETTINGS.knee;
+            compressor.connect(limiter);
+            master = new Tone.Gain(getTargetMasterGain()).connect(compressor);
+            meter = new Tone.Meter();
+            master.connect(meter);
+
+            const destination = getToneDestination();
+            if (destination && destination.volume) {
+                destination.volume.value = 0;
+            }
+
+            renderMeter();
+
+            cpuSynth = new Tone.Synth({
+                oscillator: { type: 'square' },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+            }).connect(master);
+
+            ramSynth = new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.01, decay: 0.3, sustain: 0, release: 0.3 }
+            }).connect(master);
+
+            gpuSynth = new Tone.MetalSynth({
+                frequency: 400,
+                envelope: { attack: 0.001, decay: 0.2, release: 0.2 },
+                harmonicity: 5.1,
+                modulationIndex: 32
+            }).connect(master);
+
+            netSynth = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.04 }
+            }).connect(master);
+
+            diskSynth = new Tone.MembraneSynth({
+                pitchDecay: 0.02,
+                octaves: 3,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.06 }
+            }).connect(master);
+
+            tempSynth = new Tone.FMSynth({
+                harmonicity: 2.4,
+                modulationIndex: 12,
+                envelope: { attack: 0.005, decay: 0.12, sustain: 0, release: 0.08 }
+            }).connect(master);
+
+            swapSynth = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.02, decay: 0.3, sustain: 0.05, release: 0.2 }
+            }).connect(master);
+
+            powerSynth = new Tone.MetalSynth({
+                harmonicity: 7,
+                resonance: 2500,
+                modulationIndex: 18,
+                envelope: { attack: 0.001, decay: 0.15, release: 0.1 }
+            }).connect(master);
+
+            pressureSynth = new Tone.AMSynth({
+                harmonicity: 1.8,
+                envelope: { attack: 0.002, decay: 0.1, sustain: 0, release: 0.05 }
+            }).connect(master);
+
+            padSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.03, decay: 0.2, sustain: 0.2, release: 0.35 }
+            }).connect(master);
+
+            applyGenreToSynths();
+            updateMixer();
+            updateAudioStatus();
+            running = true;
+        }
+
+        async function boot(options = {}) {
+            const countdownSeconds = options.countdownSeconds === undefined ? 3 : Math.max(0, Number(options.countdownSeconds));
+            const minDelayMs = options.minDelayMs === undefined ? 500 : Math.max(0, Number(options.minDelayMs));
+            const hideOverlayOnSuccess = options.hideOverlayOnSuccess !== false;
+            log('Booting Diagnostic Hardlink Engine...');
+
+            const overlay = document.getElementById('start-overlay');
+            const startBtn = document.getElementById('start-btn');
+
+            if (running) {
+                if (overlay && hideOverlayOnSuccess) overlay.style.display = 'none';
+                return true;
+            }
+
+            if (bootInProgress) return false;
+            bootInProgress = true;
+
+            setBootError('');
+            if (startBtn) {
+                startBtn.disabled = true;
+                startBtn.classList.add('is-loading');
+                startBtn.innerText = START_BUTTON_LOADING_LABEL;
+            }
+            setOverlayStatus('Lock acquired. Verifying startup contract...', 'pending');
+
+            const startedAt = performance.now();
+
+            try {
+                const preflight = await runStartupPreflight({ quiet: true, force: true });
+                if (!preflight.ready) {
+                    throw new Error(preflight.message);
+                }
+
+                await runUndoCountdown(countdownSeconds);
+
+                setOverlayStatus('Initializing audio graph and safety chain...', 'pending');
+                await startAudioEngine();
+
+                const elapsed = performance.now() - startedAt;
+                if (elapsed < minDelayMs) {
+                    await wait(minDelayMs - elapsed);
+                }
+
+                setOverlayStatus('Engine online. Telemetry mapped to live orchestration.', 'success');
+                clearCountdownTimer();
+
+                if (overlay && hideOverlayOnSuccess) {
+                    overlay.style.display = 'none';
+                }
+
+                log('DIAGNOSTIC ENGINE: ONLINE. Triggers per Packet ENABLED.');
+                return true;
+            } catch (e) {
+                clearCountdownTimer();
+                if (e && e.message === 'start_cancelled') {
+                    return false;
+                }
+
+                const message = e && e.message ? e.message : 'Unknown startup failure';
+                log(`BOOT ERROR: ${message}`);
+                setBootError(`Engine start failed: ${message}`);
+                setOverlayStatus('Start failed. Adjust settings and retry.', 'fail');
+                return false;
+            } finally {
+                bootInProgress = false;
+                if (startBtn && !running) {
+                    startBtn.classList.remove('is-loading');
+                    startBtn.disabled = false;
+                    startBtn.innerText = preflightState.ready ? START_BUTTON_READY_LABEL : START_BUTTON_RETRY_LABEL;
+                }
+            }
+        }
+
+        function scheduleStartupPreflight(delayMs = 180) {
+            if (preflightDebounceTimer) clearTimeout(preflightDebounceTimer);
+            preflightDebounceTimer = setTimeout(() => {
+                if (running || bootInProgress) return;
+                runStartupPreflight({ quiet: false, force: true }).catch((err) => {
+                    preflightState.ready = false;
+                    preflightState.message = err && err.message ? err.message : 'Pre-flight failed unexpectedly.';
+                    updatePreflightPresentation();
+                    setOverlayStatus(preflightState.message, 'fail');
+                });
+            }, delayMs);
+        }
+
+        function bindStartButton() {
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    boot();
+                });
+            }
+
+            const manualIpInput = document.getElementById('manual-ip');
+            if (manualIpInput) {
+                manualIpInput.addEventListener('input', () => {
+                    scheduleStartupPreflight(240);
+                });
+                manualIpInput.addEventListener('change', () => {
+                    connect();
+                    scheduleStartupPreflight(20);
+                });
+                manualIpInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        connect();
+                        scheduleStartupPreflight(0);
+                    }
+                });
+            }
+        }
+
+        function toggleSolo(mode, btnEl) {
+            soloModes[mode] = !soloModes[mode];
+            const btn = btnEl || document.activeElement;
+            if (!btn) return;
+            btn.style.background = soloModes[mode] ? "#f43f5e" : "#475569";
+            log(`SOLO: ${mode.toUpperCase()} ${soloModes[mode] ? 'ON' : 'OFF'}`);
+        }
+
+        function updateMixer() {
+            if (!cpuSynth) return;
+            setLeadVoiceVolume(cpuSynth, 'cpu', 0);
+            setLeadVoiceVolume(ramSynth, 'ram', 0);
+            setLeadVoiceVolume(gpuSynth, 'gpu', 0);
+            applyAuxVoiceVolume(netSynth, AUX_VOICE_DB.net, 'net');
+            applyAuxVoiceVolume(diskSynth, AUX_VOICE_DB.disk, 'disk');
+            applyAuxVoiceVolume(tempSynth, AUX_VOICE_DB.temp, 'temp');
+            applyAuxVoiceVolume(swapSynth, AUX_VOICE_DB.swap, 'swap');
+            applyAuxVoiceVolume(powerSynth, AUX_VOICE_DB.power, 'power');
+            applyAuxVoiceVolume(pressureSynth, AUX_VOICE_DB.pressure, 'pressure');
+            applyAuxVoiceVolume(padSynth, AUX_VOICE_DB.pad, 'pad');
+        }
+
+        function testVoices() {
+            if (!running || !localAudioEnabled) {
+                log('TEST skipped: enable Browser Audio first.');
+                return;
+            }
+            Tone.context.resume().then(() => {
+                applyGenreToSynths();
+                updateMixer();
+
+                const profileLabel = EXPERIENCE_PROFILES[currentExperienceProfile]?.label || 'Custom Profile';
+                const genreLabel = getGenreProfile().label;
+                log(`TESTING: Profile-Synced Chain (${profileLabel} | ${genreLabel})...`);
+
+                const probe = {
+                    cpu: 64,
+                    ram: 72,
+                    gpu: 58,
+                    net_pps: 21000,
+                    disk_iops: 1700,
+                    iowait_pct: 14,
+                    cpu_temp_c: 62,
+                    gpu_temp_c: 67,
+                    gpu_power_w: 190,
+                    swap_pct: 9,
+                    load1_pct: 54,
+                    ctx_switches_ps: 98000,
+                    interrupts_ps: 17500,
+                    proc_count: 380,
+                };
+
+                const frame = buildHardwareBoundFrame(probe);
+                const bus = computeBusEnergies(probe);
+                const mixDensity = computeMixDensity(bus, frame.hw);
+                const anySolo = Object.values(soloModes).some(v => v);
+
+                if (isAudioLineActive('cpu') && (!anySolo || soloModes.cpu)) {
+                    cpuSynth.triggerAttackRelease(frame.leadFreq, '16n', undefined, computeTriggerLevel(0.23, mixDensity, frame.hw.cpu));
+                }
+                if (isAudioLineActive('ram') && (!anySolo || soloModes.ram)) {
+                    setTimeout(() => {
+                        ramSynth.triggerAttackRelease(frame.responseFreq, '8n', undefined, computeTriggerLevel(0.26, mixDensity, frame.hw.ram));
+                        ramSynth.triggerAttackRelease(frame.responseHarmonyFreq, '16n', undefined, computeTriggerLevel(0.16, mixDensity, frame.hw.ram));
+                    }, 260);
+                }
+                if (isAudioLineActive('gpu') && (!anySolo || soloModes.gpu)) {
+                    setTimeout(() => {
+                        gpuSynth.frequency.value = frame.accentFreq;
+                        gpuSynth.triggerAttackRelease('16n', undefined, computeTriggerLevel(0.24, mixDensity, frame.hw.gpu));
+                    }, 520);
+                }
+                if (isAudioLineActive('net') && (!anySolo || soloModes.cpu)) {
+                    setTimeout(() => netSynth.triggerAttackRelease('32n', undefined, computeTriggerLevel(0.28, mixDensity, bus.rhythm || 0.3)), 760);
+                }
+                if (isAudioLineActive('disk') && (!anySolo || soloModes.ram)) {
+                    setTimeout(() => diskSynth.triggerAttackRelease(frame.bassFreq, '16n', undefined, computeTriggerLevel(0.28, mixDensity, bus.bass || 0.35)), 900);
+                }
+                if (isAudioLineActive('temp') && (!anySolo || soloModes.gpu)) {
+                    setTimeout(() => tempSynth.triggerAttackRelease(frame.accentFreq, '8n', undefined, computeTriggerLevel(0.24, mixDensity, bus.fx || 0.3)), 1060);
+                }
+                if (isAudioLineActive('pad')) {
+                    setTimeout(() => padSynth.triggerAttackRelease(frame.padNotesDense, '2n', undefined, computeTriggerLevel(0.18, mixDensity, bus.pad || 0.3)), 1240);
+                }
+            });
+        }
+
+        let packetCount = 0;
+        function connect() {
+            if (socket) {
+                socket.onclose = null;
+                socket.close();
+            }
+
+            const { host, wsProtocol, ports: fallbackPorts } = getConnectionConfig();
+            preflightState.endpointLabel = `${host}:${fallbackPorts.join('/')}`;
+            updatePreflightPresentation();
+
+            const statusText = document.getElementById('st-text');
+            const led = document.getElementById('led');
+            const params = new URLSearchParams(window.location.search || '');
+            const wsToken = (params.get('token') || localStorage.getItem('hspWsToken') || '').trim();
+
+            const handleMessage = (e) => {
+                packetCount++;
+                let d;
+                try {
+                    d = JSON.parse(e.data);
+                } catch (_err) {
+                    return;
+                }
+
+                if (d && d.type === 'control_ack') {
+                    const mode = d.deduplicated ? 'dedup' : 'applied';
+                    log(`CONTROL ACK ${mode}: ${d.command_id || '?'} v${d.state_version || 0}`);
+                    return;
+                }
+
+                if (d && d.type === 'control_error') {
+                    log(`CONTROL ERROR ${d.code || 'unknown'}: ${d.message || 'invalid control payload'}`);
+                    return;
+                }
+
+                if (!d || typeof d.cpu !== 'number' || typeof d.ram !== 'number' || typeof d.gpu !== 'number') {
+                    return;
+                }
+
+                if (packetCount % 50 === 0) {
+                    log(`DATA: CPU ${d.cpu.toFixed(0)}% | MIDI ${d.midi?.note || '?'}`);
+                    updateAudioStatus();
+                }
+                const bus = computeBusEnergies(d);
+                pendingUiFrame = d;
+                pendingUiBus = bus;
+                scheduleUiFlush();
+
+                if (running && localAudioEnabled) sonify(d, bus);
+            };
+
+            const tryConnect = (portIndex) => {
+                const wsPort = fallbackPorts[portIndex];
+                const tokenQuery = wsToken ? `?token=${encodeURIComponent(wsToken)}` : '';
+                const wsUrl = `${wsProtocol}://${host}:${wsPort}/ws${tokenQuery}`;
+                log(`WS CONNECT: ${wsUrl}...`);
+                statusText.innerText = `Connecting ${host}:${wsPort}`;
+
+                try {
+                    socket = new WebSocket(wsUrl);
+
+                    socket.onopen = () => {
+                        log(`WS OPEN on ${wsPort}!`);
+                        led.className = 'led on';
+                        statusText.innerText = `Online (${host}:${wsPort})`;
+                        updateSourceBadge('local');
+                        preflightState.endpointLabel = `${host}:${wsPort}`;
+                        updatePreflightPresentation();
+                        scheduleStartupPreflight(10);
+                        sendControlCommand({ escalation_regulator: escalationRegulator });
+                    };
+
+                    socket.onmessage = handleMessage;
+
+                    socket.onerror = () => {
+                        log(`WS ERROR on ${wsPort}`);
+                    };
+
+                    socket.onclose = () => {
+                        led.className = 'led';
+                        updateSourceBadge('offline');
+                        if (portIndex + 1 < fallbackPorts.length) {
+                            log(`WS CLOSED on ${wsPort}; trying fallback port ${fallbackPorts[portIndex + 1]}...`);
+                            tryConnect(portIndex + 1);
+                            return;
+                        }
+
+                        log('WS CLOSED (all ports failed). Retrying in 4s...');
+                        statusText.innerText = 'Offline (Retry...)';
+                        scheduleStartupPreflight(60);
+                        setTimeout(connect, 4000);
+                    };
+                } catch (e) {
+                    log(`WS ERROR on ${wsPort}: ${e.message}`);
+                    if (portIndex + 1 < fallbackPorts.length) {
+                        tryConnect(portIndex + 1);
+                    } else {
+                        statusText.innerText = 'Offline (Retry...)';
+                        scheduleStartupPreflight(60);
+                        setTimeout(connect, 4000);
+                    }
+                };
+            };
+
+            tryConnect(0);
+        }
+
+        function sonify(d, bus) {
+            try {
+                if (!window.Tone || !cpuSynth) return;
+                const anySolo = Object.values(soloModes).some(v => v);
+                const frame = buildHardwareBoundFrame(d);
+                const hw = frame.hw;
+                const busState = bus || { rhythm: hw.cpu, bass: hw.io, pad: hw.ram, fx: hw.therm };
+                const mixDensity = computeMixDensity(busState, hw);
+                const escalationEnergy = frame.escalationEnergy || getEscalationEnergy();
+                if (packetCount % 24 === 0) applyGenreToSynths();
+
+                setLeadVoiceVolume(cpuSynth, 'cpu', mapV(hw.cpu, 0, 1, -4, 4));
+                setLeadVoiceVolume(ramSynth, 'ram', mapV(hw.ram, 0, 1, -4, 3));
+                setLeadVoiceVolume(gpuSynth, 'gpu', mapV(hw.therm, 0, 1, -5, 5));
+                
+                // Audio Context Safety - Check every message but don't resume unless needed
+                if (packetCount % 30 === 0 && Tone.context.state !== 'running') {
+                    console.log("Auto-Resuming context check...");
+                    Tone.context.resume();
+                }
+
+                const flash = (id, time) => {
+                    const el = document.getElementById(id);
+                    if(el) { el.style.opacity = 1; setTimeout(()=>el.style.opacity=0, time); }
+                };
+
+                const cpuDelta = Math.abs((d.cpu || 0) - musicalState.lastCpu) / 100;
+                const gpuDelta = Math.abs((d.gpu || 0) - musicalState.lastGpu) / 100;
+                musicalState.lastCpu = d.cpu || 0;
+                musicalState.lastGpu = d.gpu || 0;
+
+                const breath = hw.pressure < 0.42 && packetCount % 12 === 0;
+                const leadFreq = frame.leadFreq;
+                const responseFreq = frame.responseFreq;
+
+                // Hardware-first lead: CPU pressure drives cadence density.
+                if (isAudioLineActive('cpu') && (!anySolo || soloModes.cpu)) {
+                    const leadStepBase = hw.pressure > 0.75 ? 1 : (hw.pressure > 0.42 ? 2 : 3);
+                    const leadStep = Math.max(1, leadStepBase - (escalationEnergy > 0.82 ? 1 : 0));
+                    if (!breath && packetCount % leadStep === 0) {
+                        cpuSynth.triggerAttackRelease(leadFreq, leadStep === 1 ? '16n' : '8n', undefined, computeTriggerLevel(0.18 + clamp01(cpuDelta + hw.cpu * 0.45) * 0.2, mixDensity, hw.cpu));
+                        flash('pulse-cpu', 40);
+                        flash('pulse-led', 30);
+                    }
+                    if (frame.accentCadencePoint && frame.harmonicMotion > 0.72 && !breath) {
+                        cpuSynth.triggerAttackRelease(frame.leadOctaveFreq, '16n', undefined, computeTriggerLevel(0.07 + hw.cpu * 0.05, mixDensity, 0.32));
+                    }
+                }
+
+                // RAM response: stable and clearly tied to memory load.
+                const ramStep = genreStep(4);
+                if (isAudioLineActive('ram') && (!anySolo || soloModes.ram) && !breath && packetCount % ramStep === (2 % ramStep)) {
+                    const ramExcitement = Math.max(hw.ram, busState.bass || 0);
+                    ramSynth.triggerAttackRelease(responseFreq, ramStep <= 3 ? '8n' : '4n', undefined, computeTriggerLevel(0.19 + hw.ram * 0.18, mixDensity, ramExcitement));
+                    if (frame.accentCadencePoint && (frame.harmonicMotion > 0.58 || hw.ram > 0.55)) {
+                        ramSynth.triggerAttackRelease(frame.responseHarmonyFreq, '16n', undefined, computeTriggerLevel(0.07 + hw.ram * 0.08, mixDensity, 0.3));
+                    }
+                    flash('pulse-ram', 60);
+                }
+
+                // GPU/thermal accent: only when actual thermal or GPU load is active.
+                if (isAudioLineActive('gpu') && (hw.gpu > 0.1 || hw.therm > 0.28) && (!anySolo || soloModes.gpu) && packetCount % 3 === 0) {
+                    gpuSynth.frequency.value = mapV(Math.max(d.gpu || 0, d.gpu_temp_c || 0), 0, 100, 200, 2000);
+                    gpuSynth.triggerAttackRelease('16n', undefined, computeTriggerLevel(0.14 + clamp01(gpuDelta + hw.therm * 0.55) * 0.16, mixDensity, hw.therm));
+                    flash('pulse-gpu', 40);
+                }
+
+                if (isAudioLineActive('pad') && frame.isCadencePoint && hw.therm < 0.9) {
+                    const padVoicing = frame.harmonicMotion > 0.62 ? frame.padNotesDense : frame.padNotes;
+                    const padLength = frame.accentCadencePoint ? '1n' : '2n';
+                    padSynth.triggerAttackRelease(padVoicing, padLength, undefined, computeTriggerLevel(0.11 + (1 - hw.pressure) * 0.1, mixDensity, 0.28));
+                }
+
+                orchestrateExtras(d, frame, anySolo, busState, mixDensity);
+                triggerLaneInstruments(d, frame, anySolo, busState, mixDensity);
+
+            } catch (err) { console.error("Sonify Error", err); }
+        }
+
+        window.onload = () => {
+            bindStartButton();
+            localAudioEnabled = localStorage.getItem(LOCAL_AUDIO_STORAGE_KEY) === '1';
+            syncLocalAudioToggleUI();
+            if (!localAudioEnabled) {
+                const overlay = document.getElementById('start-overlay');
+                if (overlay) overlay.style.display = 'none';
+                log('Startup mode: monitor-only (external synth audio).');
+            }
+            initUiRefs();
+            initCharts();
+            initRoutingMatrix();
+            initExperiencePanel();
+            initVolumeTrim();
+            initLineTrimmer();
+            updatePreflightPresentation();
+            updateAudioStatus();
+            updateSourceBadge('offline');
+            connect();
+            if (localAudioEnabled) {
+                scheduleStartupPreflight(30);
+            } else {
+                runStartupPreflight({ quiet: true, force: true }).catch(() => {});
+            }
+        };
+
+        // Keep global entrypoint for compatibility with older markup.
+        window.boot = boot;
+    </script>
+</body>
+</html>

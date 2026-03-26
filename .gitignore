@@ -1,0 +1,32 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Secrets & env
+.env
+.env.*
+*.env
+
+# Logs & temp
+*.log
+*.log.*
+tmp_chrome_profile/
+/tmp/
+node_modules/
+
+
+# Rust
+hsp-rs/target/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo

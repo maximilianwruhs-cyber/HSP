@@ -1,0 +1,12 @@
+{
+  "name": "hsp-a11y-gates",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "a11y:ci": "node scripts/a11y_gate.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.2",
+    "playwright": "^1.52.0"
+  }
+}
