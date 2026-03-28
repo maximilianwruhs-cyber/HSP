@@ -6,6 +6,8 @@
 [![Platform: Ubuntu](https://img.shields.io/badge/platform-Ubuntu%20Linux-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 [![Rust](https://img.shields.io/badge/rust-experimental-orange?logo=rust)](https://www.rust-lang.org/)
 
+[![Part of: AgenticOS](https://img.shields.io/badge/ecosystem-AgenticOS-blue)](https://github.com/maximilianwruhs-cyber)
+
 > Turn your machine's heartbeat into music.
 
 HSP translates live Linux telemetry — CPU, RAM, GPU, disk I/O, network, power — into a continuous MIDI stream driven by an **adaptive sampling clock** that responds to real workload, not fixed-interval polling.
@@ -195,6 +197,18 @@ python scripts/midi_smoke.py --strict # requires MIDI endpoint
 - `.gitignore` blocks `.env`, `*.log`, `venv/`, and `target/`. Never commit credentials.
 - Dependency scanning: `pip-audit` (Python), `cargo audit` (Rust).
 - GPU metrics are optional — the pipeline continues without them.
+
+---
+
+## AgenticOS Ecosystem
+
+| Project | Description |
+|---------|-------------|
+| [**AOS**](https://github.com/maximilianwruhs-cyber/AOS) | Sovereign AI layer for Ubuntu — the brain of the ecosystem |
+| [**AOS Customer Edition**](https://github.com/maximilianwruhs-cyber/AOS-Customer-Edition) | Zero-touch deployment — one `curl` command installs everything |
+| [**AOS Intelligence Dashboard**](https://github.com/maximilianwruhs-cyber/AOS-Intelligence-Dashboard) | VS Codium extension for real-time energy monitoring & LLM leaderboard |
+| [**Obolus**](https://github.com/maximilianwruhs-cyber/Obolus) | Intelligence per Watt — benchmark which LLM is most efficient on your hardware |
+| [**HSP VS Codium Extension**](https://github.com/maximilianwruhs-cyber/HSP-VS-Codium-Extension) | VS Codium sidebar for live HSP telemetry visualization |
 
 ## License
 
