@@ -367,31 +367,35 @@ class MultiGPUDetector:
             GenericDetector()
         ]
         self._warned = False
-        self._cached_result: Optional[GPUMetrics] = None
+        self._active_detector: Optional[GPUDetector] = None
+        self._no_gpu = False
         
     def detect_gpus(self) -> GPUMetrics:
         """Detect GPUs using all available methods, returning the first successful result.
         
-        Caches the result after the first call. If no GPU was found initially,
-        subsequent calls return the cached empty result without re-probing.
+        Caches the working detector after the first call. If no GPU was found initially,
+        subsequent calls return an empty GPUMetrics without re-probing.
         """
-        if self._cached_result is not None:
-            return self._cached_result
+        if self._no_gpu:
+            return GPUMetrics(vendor=GPUVendor.UNKNOWN)
+
+        if self._active_detector is not None:
+            return self._active_detector.detect()
 
         # Try detectors in order of preference
         for detector in self.detectors:
             metrics = detector.detect()
             if metrics.is_available():
                 logging.info(f"Using {metrics.vendor.value} GPU detector - found {metrics.device_count} devices")
-                self._cached_result = metrics
+                self._active_detector = detector
                 return metrics
                 
         # No GPUs found — warn once
         if not self._warned:
             logging.warning("No GPU detection method succeeded - continuing without GPU metrics")
             self._warned = True
-        self._cached_result = GPUMetrics(vendor=GPUVendor.UNKNOWN)
-        return self._cached_result
+        self._no_gpu = True
+        return GPUMetrics(vendor=GPUVendor.UNKNOWN)
         
     def get_all_available_metrics(self) -> List[GPUMetrics]:
         """Get metrics from all available GPU detectors."""

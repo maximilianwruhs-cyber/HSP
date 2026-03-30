@@ -1482,7 +1482,17 @@
                 cadenceFactor: 0.85,
                 cpuOsc: 'square',
                 ramOsc: 'triangle',
-                netNoise: 'white'
+                netNoise: 'white',
+                cpuEnv: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.08 },
+                ramEnv: { attack: 0.005, decay: 0.2, sustain: 0, release: 0.2 },
+                netEnv: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.04 },
+                diskPitchDecay: 0.02,
+                diskEnv: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.06 },
+                gpuHarmonicity: 5.1, gpuModIndex: 32,
+                gpuEnv: { attack: 0.001, decay: 0.2, release: 0.2 },
+                padEnv: { attack: 0.03, decay: 0.2, sustain: 0.1, release: 0.2 },
+                tempModIndex: 12,
+                pressureHarmonicity: 1.8
             },
             ambient: {
                 label: 'Ambient',
@@ -1493,7 +1503,17 @@
                 cadenceFactor: 1.9,
                 cpuOsc: 'sine',
                 ramOsc: 'sine',
-                netNoise: 'pink'
+                netNoise: 'pink',
+                cpuEnv: { attack: 0.02, decay: 0.4, sustain: 0.1, release: 0.35 },
+                ramEnv: { attack: 0.05, decay: 0.6, sustain: 0.15, release: 0.5 },
+                netEnv: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.1 },
+                diskPitchDecay: 0.08,
+                diskEnv: { attack: 0.005, decay: 0.35, sustain: 0, release: 0.15 },
+                gpuHarmonicity: 3.2, gpuModIndex: 16,
+                gpuEnv: { attack: 0.005, decay: 0.4, release: 0.35 },
+                padEnv: { attack: 0.08, decay: 0.4, sustain: 0.4, release: 0.8 },
+                tempModIndex: 6,
+                pressureHarmonicity: 1.2
             },
             orchestral: {
                 label: 'Orchestral',
@@ -1504,7 +1524,17 @@
                 cadenceFactor: 1.35,
                 cpuOsc: 'triangle',
                 ramOsc: 'triangle',
-                netNoise: 'pink'
+                netNoise: 'pink',
+                cpuEnv: { attack: 0.003, decay: 0.22, sustain: 0.03, release: 0.18 },
+                ramEnv: { attack: 0.02, decay: 0.4, sustain: 0.08, release: 0.3 },
+                netEnv: { attack: 0.005, decay: 0.12, sustain: 0, release: 0.08 },
+                diskPitchDecay: 0.04,
+                diskEnv: { attack: 0.002, decay: 0.25, sustain: 0, release: 0.1 },
+                gpuHarmonicity: 3.8, gpuModIndex: 22,
+                gpuEnv: { attack: 0.003, decay: 0.3, release: 0.25 },
+                padEnv: { attack: 0.05, decay: 0.3, sustain: 0.35, release: 0.6 },
+                tempModIndex: 10,
+                pressureHarmonicity: 1.6
             },
             jazz: {
                 label: 'Jazz',
@@ -1515,7 +1545,17 @@
                 cadenceFactor: 1.05,
                 cpuOsc: 'triangle',
                 ramOsc: 'sine',
-                netNoise: 'white'
+                netNoise: 'white',
+                cpuEnv: { attack: 0.005, decay: 0.18, sustain: 0.02, release: 0.15 },
+                ramEnv: { attack: 0.01, decay: 0.35, sustain: 0.05, release: 0.25 },
+                netEnv: { attack: 0.002, decay: 0.1, sustain: 0, release: 0.06 },
+                diskPitchDecay: 0.03,
+                diskEnv: { attack: 0.002, decay: 0.2, sustain: 0, release: 0.08 },
+                gpuHarmonicity: 4.0, gpuModIndex: 20,
+                gpuEnv: { attack: 0.002, decay: 0.25, release: 0.2 },
+                padEnv: { attack: 0.04, decay: 0.25, sustain: 0.25, release: 0.4 },
+                tempModIndex: 9,
+                pressureHarmonicity: 1.5
             },
             dnb: {
                 label: 'Drum and Bass',
@@ -1526,7 +1566,17 @@
                 cadenceFactor: 0.62,
                 cpuOsc: 'square',
                 ramOsc: 'triangle',
-                netNoise: 'white'
+                netNoise: 'white',
+                cpuEnv: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.05 },
+                ramEnv: { attack: 0.003, decay: 0.12, sustain: 0, release: 0.1 },
+                netEnv: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.03 },
+                diskPitchDecay: 0.01,
+                diskEnv: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.04 },
+                gpuHarmonicity: 6.0, gpuModIndex: 36,
+                gpuEnv: { attack: 0.001, decay: 0.15, release: 0.12 },
+                padEnv: { attack: 0.02, decay: 0.15, sustain: 0.08, release: 0.15 },
+                tempModIndex: 14,
+                pressureHarmonicity: 2.0
             },
             industrial: {
                 label: 'Industrial',
@@ -1537,7 +1587,17 @@
                 cadenceFactor: 0.72,
                 cpuOsc: 'sawtooth',
                 ramOsc: 'square',
-                netNoise: 'brown'
+                netNoise: 'brown',
+                cpuEnv: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.04 },
+                ramEnv: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.1 },
+                netEnv: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.06 },
+                diskPitchDecay: 0.015,
+                diskEnv: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.04 },
+                gpuHarmonicity: 8.5, gpuModIndex: 48,
+                gpuEnv: { attack: 0.001, decay: 0.12, release: 0.1 },
+                padEnv: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.08 },
+                tempModIndex: 18,
+                pressureHarmonicity: 2.4
             }
         };
         let currentGenre = 'techno';
@@ -1580,6 +1640,7 @@
             'night-patrol': {
                 theme: 'crt-green',
                 gains: { cpu: -15.6, ram: -17.8, gpu: -19.2 },
+                gpuCharacter: { freqLo: 150, freqHi: 1200, harmonicity: 5.1, modIndex: 32 },
                 routing: {
                     cpu: 'rhythm', ram: 'bass', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'rhythm',
                     cpu_temp_c: 'pad', gpu_temp_c: 'fx', gpu_power_w: 'fx', swap_pct: 'pad',
@@ -1593,7 +1654,8 @@
             },
             'high-load-alarm': {
                 theme: 'amber-ops',
-                gains: { cpu: -12.2, ram: -13.4, gpu: -14.2 },
+                gains: { cpu: -12.2, ram: -13.4, gpu: -12.8 },
+                gpuCharacter: { freqLo: 300, freqHi: 3000, harmonicity: 7.5, modIndex: 42 },
                 routing: {
                     cpu: 'rhythm', ram: 'bass', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'rhythm',
                     cpu_temp_c: 'fx', gpu_temp_c: 'fx', gpu_power_w: 'fx', swap_pct: 'pad',
@@ -1607,7 +1669,8 @@
             },
             'calm-observatory': {
                 theme: 'ice-lab',
-                gains: { cpu: -18.8, ram: -19.8, gpu: -21.5 },
+                gains: { cpu: -20.5, ram: -21.0, gpu: -24.0 },
+                gpuCharacter: { freqLo: 120, freqHi: 800, harmonicity: 3.0, modIndex: 14 },
                 routing: {
                     cpu: 'pad', ram: 'pad', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'bass',
                     cpu_temp_c: 'pad', gpu_temp_c: 'pad', gpu_power_w: 'fx', swap_pct: 'pad',
@@ -1621,7 +1684,8 @@
             },
             'chaos-festival': {
                 theme: 'default-neon',
-                gains: { cpu: -11.4, ram: -12.4, gpu: -13.1 },
+                gains: { cpu: -11.4, ram: -12.4, gpu: -11.0 },
+                gpuCharacter: { freqLo: 200, freqHi: 3500, harmonicity: 6.8, modIndex: 44 },
                 routing: {
                     cpu: 'rhythm', ram: 'rhythm', gpu: 'fx', net_pps: 'rhythm', disk_iops: 'bass',
                     cpu_temp_c: 'fx', gpu_temp_c: 'fx', gpu_power_w: 'fx', swap_pct: 'bass',
@@ -1643,7 +1707,12 @@
                 genre: 'techno',
                 genreDensity: 1.0,
                 escalationRegulator: 1.0,
-                desc: 'Covert patrol pulse with tight synth rhythm and moderate escalation.'
+                desc: 'Covert patrol pulse with tight synth rhythm and moderate escalation.',
+                lineTrimOverrides: {
+                    'basic-bottom': { cpu: 2, ram: -1, gpu: -3 },
+                    'ops-extended': { cpu: 2, ram: -1, gpu: -3, net: -4, disk: -2, temp: -5 },
+                    'full-matrix': { cpu: 2, ram: -1, gpu: -3, net: -4, disk: -2, temp: -5, swap: -8, power: -6, pressure: -5, pad: -7 }
+                }
             },
             'calm-observatory-ambient': {
                 label: 'Calm Observatory Ambient',
@@ -1652,7 +1721,12 @@
                 genre: 'ambient',
                 genreDensity: 0.8,
                 escalationRegulator: 0.75,
-                desc: 'Wide harmonic bed and restrained escalation for long-form listening.'
+                desc: 'Wide harmonic bed and restrained escalation for long-form listening.',
+                lineTrimOverrides: {
+                    'basic-bottom': { cpu: -4, ram: -3, gpu: -6 },
+                    'ops-extended': { cpu: -4, ram: -3, gpu: -6, net: -8, disk: -6, temp: -4 },
+                    'full-matrix': { cpu: -4, ram: -3, gpu: -6, net: -8, disk: -6, temp: -4, swap: -10, power: -10, pressure: -6, pad: 2 }
+                }
             },
             'high-load-alarm-industrial': {
                 label: 'High Load Alarm Industrial',
@@ -1661,7 +1735,12 @@
                 genre: 'industrial',
                 genreDensity: 1.35,
                 escalationRegulator: 1.55,
-                desc: 'Warning-state grit with aggressive transients and rapid tension ramp.'
+                desc: 'Warning-state grit with aggressive transients and rapid tension ramp.',
+                lineTrimOverrides: {
+                    'basic-bottom': { cpu: 3, ram: 1, gpu: 4 },
+                    'ops-extended': { cpu: 3, ram: 1, gpu: 4, net: 0, disk: 2, temp: 4 },
+                    'full-matrix': { cpu: 3, ram: 1, gpu: 4, net: 0, disk: 2, temp: 4, swap: -2, power: 3, pressure: 2, pad: -4 }
+                }
             },
             'chaos-festival-dnb': {
                 label: 'Chaos Festival Drum and Bass',
@@ -1670,7 +1749,12 @@
                 genre: 'dnb',
                 genreDensity: 1.5,
                 escalationRegulator: 1.85,
-                desc: 'High-density breakbeat swarm with heavy machine-pressure acceleration.'
+                desc: 'High-density breakbeat swarm with heavy machine-pressure acceleration.',
+                lineTrimOverrides: {
+                    'basic-bottom': { cpu: 4, ram: 2, gpu: 5 },
+                    'ops-extended': { cpu: 4, ram: 2, gpu: 5, net: 2, disk: 3, temp: 2 },
+                    'full-matrix': { cpu: 4, ram: 2, gpu: 5, net: 2, disk: 3, temp: 2, swap: 0, power: 4, pressure: 3, pad: -2 }
+                }
             },
             'droid-horror-escalation': {
                 label: 'Droid Horror Escalation',
@@ -1679,7 +1763,12 @@
                 genre: 'industrial',
                 genreDensity: 1.75,
                 escalationRegulator: 2.2,
-                desc: 'Rising alarm-chatter profile that drives fast terrifying escalation.'
+                desc: 'Rising alarm-chatter profile that drives fast terrifying escalation.',
+                lineTrimOverrides: {
+                    'basic-bottom': { cpu: 2, ram: 0, gpu: 6 },
+                    'ops-extended': { cpu: 2, ram: 0, gpu: 6, net: -2, disk: 1, temp: 6 },
+                    'full-matrix': { cpu: 2, ram: 0, gpu: 6, net: -2, disk: 1, temp: 6, swap: 2, power: 5, pressure: 4, pad: -6 }
+                }
             },
             'htop-observer': {
                 label: 'htop Observer',
@@ -1688,7 +1777,12 @@
                 genre: 'ambient',
                 genreDensity: 0.85,
                 escalationRegulator: 0.9,
-                desc: 'Hard terminal black with saturated neon glows — faithful to the htop TUI aesthetic.'
+                desc: 'Hard terminal black with saturated neon glows — faithful to the htop TUI aesthetic.',
+                lineTrimOverrides: {
+                    'basic-bottom': { cpu: 0, ram: -2, gpu: -4 },
+                    'ops-extended': { cpu: 0, ram: -2, gpu: -4, net: -3, disk: -3, temp: -3 },
+                    'full-matrix': { cpu: 0, ram: -2, gpu: -4, net: -3, disk: -3, temp: -3, swap: -6, power: -5, pressure: -4, pad: -3 }
+                }
             }
         };
 
@@ -1944,6 +2038,9 @@
             }
 
             updateMixer();
+
+            // Apply current profile's per-line-mode trim overrides
+            applyProfileLineTrimOverrides(persist);
         }
 
         function initLineTrimmer() {
@@ -1998,6 +2095,13 @@
 
         function getGenreProfile() {
             return GENRE_PROFILES[currentGenre] || GENRE_PROFILES.techno;
+        }
+
+        function getGpuCharacter() {
+            const profile = EXPERIENCE_PROFILES[currentExperienceProfile];
+            const sceneKey = profile?.scene;
+            const scene = sceneKey && SCENES[sceneKey];
+            return (scene && scene.gpuCharacter) || { freqLo: 200, freqHi: 2000, harmonicity: 5.1, modIndex: 32 };
         }
 
         function genreStep(base) {
@@ -2091,15 +2195,100 @@
             const profile = getGenreProfile();
             const longMotion = getLongFormMotion(80, 11);
             const harmonicMotion = getLongFormMotion(96, 37);
+
+            // Oscillator types
             if (cpuSynth?.oscillator) cpuSynth.oscillator.type = profile.cpuOsc || 'square';
             if (ramSynth?.oscillator) ramSynth.oscillator.type = profile.ramOsc || 'triangle';
             if (netSynth?.noise) netSynth.noise.type = profile.netNoise || 'white';
-            if (gpuSynth) {
-                gpuSynth.modulationIndex = (profile.label === 'Industrial' ? 30 : 24) + (harmonicMotion * 10);
-                gpuSynth.harmonicity = 4.3 + (longMotion * 1.1);
+
+            // CPU envelope
+            if (cpuSynth?.envelope && profile.cpuEnv) {
+                cpuSynth.envelope.attack = profile.cpuEnv.attack;
+                cpuSynth.envelope.decay = profile.cpuEnv.decay;
+                cpuSynth.envelope.sustain = profile.cpuEnv.sustain;
+                cpuSynth.envelope.release = profile.cpuEnv.release;
             }
-            if (tempSynth?.modulationIndex) tempSynth.modulationIndex.value = 8 + (longMotion * 9);
-            if (pressureSynth?.harmonicity) pressureSynth.harmonicity.value = 1.4 + (harmonicMotion * 0.7);
+
+            // RAM envelope
+            if (ramSynth?.envelope && profile.ramEnv) {
+                ramSynth.envelope.attack = profile.ramEnv.attack;
+                ramSynth.envelope.decay = profile.ramEnv.decay;
+                ramSynth.envelope.sustain = profile.ramEnv.sustain;
+                ramSynth.envelope.release = profile.ramEnv.release;
+            }
+
+            // Net envelope
+            if (netSynth?.envelope && profile.netEnv) {
+                netSynth.envelope.attack = profile.netEnv.attack;
+                netSynth.envelope.decay = profile.netEnv.decay;
+                netSynth.envelope.sustain = profile.netEnv.sustain;
+                netSynth.envelope.release = profile.netEnv.release;
+            }
+
+            // Disk synth
+            if (diskSynth && profile.diskEnv) {
+                if (diskSynth.pitchDecay !== undefined) diskSynth.pitchDecay = profile.diskPitchDecay || 0.02;
+                if (diskSynth.envelope) {
+                    diskSynth.envelope.attack = profile.diskEnv.attack;
+                    diskSynth.envelope.decay = profile.diskEnv.decay;
+                    diskSynth.envelope.sustain = profile.diskEnv.sustain;
+                    diskSynth.envelope.release = profile.diskEnv.release;
+                }
+            }
+
+            // GPU MetalSynth — genre base + long-form motion modulation
+            if (gpuSynth && gpuSynth.modulationIndex && gpuSynth.harmonicity) {
+                const baseModIndex = profile.gpuModIndex || 32;
+                const baseHarmonicity = profile.gpuHarmonicity || 5.1;
+                gpuSynth.modulationIndex.value = baseModIndex + (harmonicMotion * 8);
+                gpuSynth.harmonicity.value = baseHarmonicity + (longMotion * 0.8);
+                if (gpuSynth.envelope && profile.gpuEnv) {
+                    gpuSynth.envelope.attack = profile.gpuEnv.attack;
+                    gpuSynth.envelope.decay = profile.gpuEnv.decay;
+                    gpuSynth.envelope.release = profile.gpuEnv.release;
+                }
+            }
+
+            // Pad synth envelope
+            if (padSynth && profile.padEnv) {
+                try {
+                    padSynth.set({ envelope: profile.padEnv });
+                } catch (e) { /* PolySynth set can throw on edge cases */ }
+            }
+
+            // Temp FMSynth modulation index
+            if (tempSynth?.modulationIndex) {
+                const baseTempMod = profile.tempModIndex || 12;
+                tempSynth.modulationIndex.value = baseTempMod + (longMotion * 6);
+            }
+
+            // Pressure AMSynth harmonicity
+            if (pressureSynth?.harmonicity) {
+                const basePressureH = profile.pressureHarmonicity || 1.8;
+                pressureSynth.harmonicity.value = basePressureH + (harmonicMotion * 0.5);
+            }
+
+            // Droid Horror Escalation — special behaviors
+            if (currentExperienceProfile === 'droid-horror-escalation') {
+                const escEnergy = getEscalationEnergy();
+                // GPU harmonicity sweeps up with escalation (base → 12)
+                if (gpuSynth && gpuSynth.harmonicity) {
+                    gpuSynth.harmonicity.value = Math.min(12, gpuSynth.harmonicity.value + (escEnergy * 5));
+                }
+                // GPU modulation index rises exponentially
+                if (gpuSynth && gpuSynth.modulationIndex) {
+                    gpuSynth.modulationIndex.value = Math.min(64, gpuSynth.modulationIndex.value * (1 + escEnergy * 0.6));
+                }
+                // Temp synth: lingering alarm drones with extended release
+                if (tempSynth?.envelope) {
+                    tempSynth.envelope.release = Math.min(0.6, 0.08 + escEnergy * 0.5);
+                    tempSynth.envelope.decay = Math.min(0.5, 0.12 + escEnergy * 0.35);
+                }
+                // Pressure synth: higher tension
+                if (pressureSynth?.harmonicity) {
+                    pressureSynth.harmonicity.value = Math.min(4.0, pressureSynth.harmonicity.value + (escEnergy * 1.2));
+                }
+            }
         }
 
         function refreshGenreUI() {
@@ -2156,6 +2345,23 @@
             if (sel && sel.value !== currentExperienceProfile) sel.value = currentExperienceProfile;
         }
 
+        function applyProfileLineTrimOverrides(persist = true) {
+            const profile = EXPERIENCE_PROFILES[currentExperienceProfile];
+            if (!profile || !profile.lineTrimOverrides) return;
+            const overrides = profile.lineTrimOverrides[currentLineTrimPreset];
+            if (!overrides || typeof overrides !== 'object') return;
+
+            AUDIO_LINE_IDS.forEach((lineId) => {
+                const override = overrides[lineId];
+                if (typeof override === 'number' && Number.isFinite(override)) {
+                    lineTrimDb[lineId] = clampLineTrimDb(override);
+                    refreshLineTrimRow(lineId);
+                }
+            });
+            if (persist) persistLineTrimValues();
+            updateMixer();
+        }
+
         function applyExperienceProfile(profileName, options = {}) {
             const persist = options.persist !== false;
             const logChange = options.logChange !== false;
@@ -2171,12 +2377,14 @@
                 setEscalationRegulator(profile.escalationRegulator * 100, persist);
             }
 
+            applyProfileLineTrimOverrides(persist);
+
             if (persist) localStorage.setItem(EXPERIENCE_PROFILE_STORAGE_KEY, normalized);
             refreshExperienceUI();
             updatePreflightPresentation();
 
             if (logChange) {
-                log(`PROFILE: ${profile.label.toUpperCase()} | ESC ${escalationRegulator.toFixed(2)}x`);
+                log(`PROFILE: ${profile.label.toUpperCase()} | ESC ${escalationRegulator.toFixed(2)}x | ${currentLineTrimPreset.toUpperCase()}`);
             }
         }
 
@@ -2733,8 +2941,9 @@
             }
 
             if (isAudioLineActive('temp') && (d.iowait_pct || 0) > (8 + (1 - (bus.fx || 0)) * 30) && packetCount % genreStep(12) === 0 && (!anySolo || soloModes.gpu)) {
-                gpuSynth.frequency.value = mapV(d.iowait_pct || 0, 0, 100, 300, 2500);
-                gpuSynth.triggerAttackRelease('32n', undefined, computeTriggerLevel(0.15 + (bus.fx || 0) * 0.12, mixDensity, bus.fx || 0));
+                const gc = getGpuCharacter();
+                gpuSynth.frequency.value = mapV(d.iowait_pct || 0, 0, 100, gc.freqLo, gc.freqHi);
+                gpuSynth.triggerAttackRelease(gpuSynth.frequency.value, '32n', '+0.02', computeTriggerLevel(0.15 + (bus.fx || 0) * 0.12, mixDensity, bus.fx || 0));
             }
         }
 
@@ -2782,7 +2991,7 @@
             if (isAudioLineActive('power') && powerN > 0.08 && packetCount % genreStep(4) === (1 % genreStep(4))) {
                 const pFreq = mapV(d.gpu_power_w || 0, 0, 350, 250, 1800);
                 powerSynth.frequency.value = pFreq;
-                powerSynth.triggerAttackRelease('16n', undefined, computeTriggerLevel(0.18 + Math.min(powerN, 1) * 0.12, mixDensity, powerN));
+                powerSynth.triggerAttackRelease(pFreq, '16n', undefined, computeTriggerLevel(0.18 + Math.min(powerN, 1) * 0.12, mixDensity, powerN));
                 laneHitCounters.power += 1;
             }
 
@@ -3324,7 +3533,7 @@
                 if (isAudioLineActive('gpu') && (!anySolo || soloModes.gpu)) {
                     setTimeout(() => {
                         gpuSynth.frequency.value = frame.accentFreq;
-                        gpuSynth.triggerAttackRelease('16n', undefined, computeTriggerLevel(0.24, mixDensity, frame.hw.gpu));
+                        gpuSynth.triggerAttackRelease(frame.accentFreq, '16n', undefined, computeTriggerLevel(0.35, mixDensity, frame.hw.gpu));
                     }, 520);
                 }
                 if (isAudioLineActive('net') && (!anySolo || soloModes.cpu)) {
@@ -3463,7 +3672,7 @@
 
                 setLeadVoiceVolume(cpuSynth, 'cpu', mapV(hw.cpu, 0, 1, -4, 4));
                 setLeadVoiceVolume(ramSynth, 'ram', mapV(hw.ram, 0, 1, -4, 3));
-                setLeadVoiceVolume(gpuSynth, 'gpu', mapV(hw.therm, 0, 1, -5, 5));
+                setLeadVoiceVolume(gpuSynth, 'gpu', mapV(Math.max(hw.gpu, hw.therm), 0, 1, -5, 5));
                 
                 // Audio Context Safety - Check every message but don't resume unless needed
                 if (packetCount % 30 === 0 && Tone.context.state !== 'running') {
@@ -3512,8 +3721,9 @@
 
                 // GPU/thermal accent: only when actual thermal or GPU load is active.
                 if (isAudioLineActive('gpu') && (hw.gpu > 0.1 || hw.therm > 0.28) && (!anySolo || soloModes.gpu) && packetCount % 3 === 0) {
-                    gpuSynth.frequency.value = mapV(Math.max(d.gpu || 0, d.gpu_temp_c || 0), 0, 100, 200, 2000);
-                    gpuSynth.triggerAttackRelease('16n', undefined, computeTriggerLevel(0.14 + clamp01(gpuDelta + hw.therm * 0.55) * 0.16, mixDensity, hw.therm));
+                    const gc = getGpuCharacter();
+                    gpuSynth.frequency.value = mapV(Math.max(d.gpu || 0, d.gpu_temp_c || 0), 0, 100, gc.freqLo, gc.freqHi);
+                    gpuSynth.triggerAttackRelease(gpuSynth.frequency.value, '16n', undefined, computeTriggerLevel(0.20 + clamp01(gpuDelta + Math.max(hw.gpu, hw.therm) * 0.55) * 0.22, mixDensity, Math.max(hw.gpu, hw.therm)));
                     flash('pulse-gpu', 40);
                 }
 
